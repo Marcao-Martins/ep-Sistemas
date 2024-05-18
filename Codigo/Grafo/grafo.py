@@ -1,5 +1,4 @@
 from .nodo import Nodo
-
 class Grafo:
     def __init__(self):
         self.nodos = {}  # Dicionário para armazenar os nodos pelo identificador

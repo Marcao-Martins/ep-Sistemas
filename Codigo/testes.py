@@ -29,6 +29,6 @@ class Testes:
         print(self.grafo)
 
 # Uso da classe Testes
-testes = Testes(r"C:\Users\mpach\OneDrive\Área de Trabalho\EP Sistemas Distribuidos\arquivos\topologia_arvore_binaria")
+testes = Testes(r"E:\EP Sistemas Distribuidos\arquivos\topologia_arvore_binaria")
 testes.carregar_arquivos()
 testes.mostrar_grafo()

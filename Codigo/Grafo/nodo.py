@@ -17,6 +17,15 @@ class Nodo:
     def obtem_valor(self, chave):
         """Obtém o valor para uma chave especificada, se presente."""
         return self.pares_chave_valor.get(chave)
+    
+    def busca_local(self,chave):
+        """Busca local por uma chave e retorna o valor se encontrado."""
+        valor = self.pares_chave_valor.get(chave)
+        if valor:
+            return f"Chave: {chave}, Valor: {valor}"
+        print("Chave não encontrada nos vizinhos")
+        return None
+    
 
     def __str__(self):
         """Retorna uma representação em string do nodo, incluindo seu identificador e número de vizinhos."""
