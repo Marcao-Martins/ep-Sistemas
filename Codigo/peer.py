@@ -49,6 +49,22 @@ class Peer:
         threading.Thread(target=self.handle_peer, args=(peer_socket,)).start()
         print(f'Connected to peer {peer_host}:{peer_port}')
 
+    # Carrega os vizinhos
+    def load_neighbors(peer, filename):
+        with open(filename, 'r') as file:
+            for line in file:
+                neighbor_host, neighbor_port = line.strip().split(':')
+                print(f'Tentando adicionar vizinho {neighbor_host}:{neighbor_port}')
+                connect_to_peer(peer, neighbor_host, int(neighbor_port))
+
+    # 
+    def load_key_value_pairs(peer, filename):
+        with open(filename, 'r') as file:
+            for line in file:
+                key, value = line.strip().split(' ')
+                peer.store_data(key, value)
+
+
     # Recebe a mensagem e decide como lidar com ele
     def handle_peer(self, peer_socket):
         while True:
@@ -67,6 +83,7 @@ class Peer:
     # Envia mensagem para determinado peer
     def send_message(self, peer_socket, message):
         peer_socket.send(pickle.dumps(message))
+        
 
     # Transmite a mensagem para os outros nós
     def broadcast_message(self, message):
@@ -97,7 +114,7 @@ class Peer:
             method = request['method']
             origin = request['origin']
             if method == 'FLOODING':
-                search_key_flooding(self, key, origin)
+                flooding(self, key, origin)
             elif method == 'RANDOM_WALK':
                 steps = request.get('steps', 3)
                 search_key_random_walk(self, key, origin, steps)
