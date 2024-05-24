@@ -1,6 +1,7 @@
 from Codigo.peer import Peer
 from Codigo.conexao import inicia_servidor, conecta_peer
 import threading
+from Codigo.Grafo.buscas import flooding, random_walk, busca_em_profundidade
 
 # Carrega vizinhos de um Peer a partir de um txt - OK
 def carrega_vizinhos(peer, filename):
@@ -56,18 +57,21 @@ def main():
             print("Vizinhos conectados:", vizinhos)
         elif opcao == '1': # TODO: arrumar isso aqui pra ele 1. Contar quantos vizinhos tem 2. Associar cada um a cada numero 3. Permitir que o usuário escolha um para listar
             vizinhos = peer.listar_vizinhos(peer)
-            print("Há n vizinhos na tabela:", vizinhos)
+            print("Há N vizinhos na tabela:", vizinhos)
             num_vizinho = input('Escolha o vizinho: ')
+        # Onde que o self entra?
         elif opcao == '2':
             chave = input("Chave: ")
-            peer.handle_request({'type': 'SEARCH', 'key': chave, 'method': 'FLOODING', 'origin': (peer.endereco, peer.porta)}, None)
+            ttl = int(input("TTL: "))
+            flooding({'Tipo': 'SEARCH', 'origem': (peer.endereco, peer.porta), 'key': chave, 'metodo': 'FLOODING', 'ttl': ttl, 'seq_no': 1, 'visitados': None}, None)
         elif opcao == '3':
             chave = input("Chave: ")
-            steps = int(input("Passos: "))
-            peer.handle_request({'type': 'SEARCH', 'key': chave, 'method': 'RANDOM_WALK', 'origin': (peer.endereco, peer.porta), 'steps': steps}, None)
+            ttl = int(input("TTL: "))
+            random_walk({'Tipo': 'SEARCH', 'origem': (peer.endereco, peer.porta), 'key': chave, 'metodo': 'RANDOM_WALK', 'ttl': ttl, 'seq_no': 1, 'ultimo_vizinho': None}, None)
         elif opcao == '4':
             chave = input("Chave: ")
-            peer.handle_request({'type': 'SEARCH', 'key': chave, 'method': 'DFS', 'origin': (peer.endereco, peer.porta), 'visited': []}, None)
+            ttl = int(input("TTL: "))
+            peer.handle_request({'Tipo': 'SEARCH', 'origem': (peer.endereco, peer.porta), 'key': chave, 'metodo': 'DFS', 'ttl': ttl, 'seq_no': 1, 'visitados': None}, None)
         elif opcao == '5':
             # estatisticas
         elif opcao == '6':

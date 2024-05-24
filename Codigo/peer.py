@@ -19,9 +19,9 @@ class Peer:
     # Inicia o servidor - OK
     def inicia_servidor(self):
         servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        servidor.bind((self.host, self.port))
+        servidor.bind((self.endereco, self.porta))
         servidor.listen(5) # 5 é o número máximo de conexões pendentes que o sistema permitirá antes de recusar novas conexões
-        print(f'Servidor iniciado em {self.host}:{self.port}')
+        print(f'Servidor iniciado em {self.endereco}:{self.porta}')
         
         # Mantém o servidor em execução contínua, permitindo que ele aceite conexões de clientes indefinidamente
         while True:
@@ -67,8 +67,8 @@ class Peer:
     def load_key_value_pairs(peer, filename):
         with open(filename, 'r') as file:
             for line in file:
-                chave, value = line.strip().split(' ')
-                peer.armazena_valor(chave, value)
+                chave, valor = line.strip().split(' ')
+                peer.armazena_valor(chave, valor)
 
 
     # Recebe a mensagem e decide como lidar com ele
@@ -85,7 +85,6 @@ class Peer:
             except Exception as e:
                 print(f'Error: {e}')
                 break
-
 
     # TODO: ver se vai precisar de todos esses tipos de mensagem mesmo
 
@@ -109,32 +108,46 @@ class Peer:
         self.chave_valor[chave] = valor
         print(f'Dados armazenados: {chave} -> {valor}')
 
+
+    def envia_hello(self, endereco, porta):
+        mensagem = {'type': 'HELLO'}
+        try:
+            peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            peer_socket.connect((endereco, porta))
+            peer_socket.send(pickle.dumps(mensagem))
+            peer_socket.close()
+            print(f'Enviou HELLO para {endereco}:{porta}')
+        except Exception as e:
+            print(f'Erro ao enviar HELLO para {endereco}:{porta}: {e}')
+ 
     # Tinha um parâmetro client_socket -> tirei, ver se vai fazer falta depois
     def handle_request(self, request):
         from Grafo.buscas import flooding, random_walk, busca_em_profundidade
         
-        # TODO: verificar se as chamadas estão corretas e adicionar o "HELLO"
-        if request['type'] == 'STORE':
-            chave = request['chave']
-            value = request['valor']
-            self.armazena_valor(chave, value)
+        # Acho que nao precisa disso aqui........ a não ser pra casos específicos (e se for usar os parâmetros mesmo nas funções)
+        if request['type'] == 'HELLO':
+            # Envia 'HELLO' para um nó
         elif request['type'] == 'SEARCH':
             chave = request['chave']
-            method = request['method']
-            origin = request['origin']
-            if method == 'FLOODING':
-                flooding(self, chave, origin)
-            elif method == 'RANDOM_WALK':
-                steps = request.get('steps', 3)
-                random_walk(self, chave, origin, steps)
-            elif method == 'DFS':
-                visited = set(request.get('visited', []))
-                busca_em_profundidade(self, chave, origin, visited)
+            metodo = request['metodo']
+            origem = request['origem']
+            ttl = request['ttl']
+            seq_no = request['seq_no']
+            if metodo == 'FLOODING':
+                visitados = request['visitados']
+                flooding(self, chave, origem, ttl, seq_no, visitados)
+            elif metodo == 'RANDOM_WALK':
+                ultimo_vizinho = request['ultimo_vizinho']
+                random_walk(self, chave, origem, ttl, seq_no, ultimo_vizinho)
+            elif metodo == 'DFS':
+                visitados = request['visitados']
+                busca_em_profundidade(self, chave, origem, ttl, seq_no,)
+        # Ver se vai usar esse FOUND e se precisa de algum outro
         elif request['type'] == 'FOUND':
             chave = request['chave']
-            value = request['value']
-            origin = request['origin']
-            if (self.host, self.port) == origin:
-                print(f'Found data: {chave} -> {value}')
+            valor = request['valor']
+            origem = request['origem']
+            if (self.endereco, self.porta) == origem:
+                print(f'Found data: {chave} -> {valor}')
             else:
                 self.envia_mensagem_para_peers(request)

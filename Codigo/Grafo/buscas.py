@@ -5,7 +5,13 @@ class Buscas:
         self.grafo = grafo
 
 # TODO: pegar os argumentos dessa função pra colocar em uma mensagem e aí a partir dela pegar as infos
-    def flooding(self, origem, chave, ttl=100, seq_no=1, visitados=None):
+    def flooding(self, mensagem):
+        chave = mensagem['chave']
+        origem = mensagem['origem']
+        ttl = mensagem['ttl']
+        seq_no = mensagem['seq_no']
+        visitados = mensagem['visitados']
+
         if visitados is None:
             visitados = set()
         nodo_origem = self.grafo.obtem_nodo(*origem.split(':'))
@@ -22,7 +28,13 @@ class Buscas:
         return "Chave não encontrada"
 
     
-    def random_walk(self, origem, chave, ttl=100, seq_no=1, ultimo_vizinho=None):
+    def random_walk(self, mensagem):
+        chave = mensagem['chave']
+        origem = mensagem['origem']
+        ttl = mensagem['ttl']
+        seq_no = mensagem['seq_no']
+        ultimo_vizinho = mensagem['ultimo_vizinho']
+
         nodo_origem = self.grafo.obtem_nodo(*origem.split(':'))
         resultado = nodo_origem.busca_local(chave)
         if resultado:
@@ -40,7 +52,13 @@ class Buscas:
         return self.random_walk(vizinho_escolhido, chave, ttl-1, seq_no+1, origem)
     
     
-    def busca_em_profundidade(self, origem, chave, ttl=100, seq_no=1, visitados=None):
+    def busca_em_profundidade(self, mensagem):
+        chave = mensagem['chave']
+        origem = mensagem['origem']
+        ttl = mensagem['ttl']
+        seq_no = mensagem['seq_no']
+        visitados = mensagem['visitados']
+
         if visitados is None:
             visitados = set()
         nodo_origem = self.grafo.obtem_nodo(*origem.split(':'))
