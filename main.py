@@ -3,21 +3,6 @@ from Codigo.conexao import inicia_servidor, conecta_peer
 import threading
 from Codigo.Grafo.buscas import flooding, random_walk, busca_em_profundidade
 
-# Carrega vizinhos de um Peer a partir de um txt - OK
-def carrega_vizinhos(peer, filename):
-    with open(filename, 'r') as file:
-        for line in file:
-            endereco_vizinho, porta_vizinho = line.strip().split(':')
-            print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
-            conecta_peer(peer, endereco_vizinho, int(porta_vizinho))
-
-# Carrega pares chave-valor de um txt e armazena no array "chave_valor" de um Peer - OK
-def carrega_chave_valor(peer, filename):
-    with open(filename, 'r') as file:
-        for line in file:
-            chave, valor = line.strip().split(' ')
-            peer.armazena_valor(chave, valor)
-
 def main():
     if len(sys.argv) < 2:
         print("Algo deu errado! Inicie: python main.py <endereço>:<porta> [<arquivo_vizinhos>] [<arquivo_pares_chave_valor>]")

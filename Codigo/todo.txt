@@ -1,0 +1,5 @@
+Inicialização
+
+1. Cria socket TCP com a entrada <porta:end>
+2. Conecta a lista de vizinhos associada ao nó
+3. Adiciona conjunto chave-valor se tiver

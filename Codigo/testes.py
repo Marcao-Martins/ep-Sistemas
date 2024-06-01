@@ -12,8 +12,8 @@ class Testes:
         for arquivo in os.listdir(self.pasta_de_arquivos):
             if arquivo.endswith(".txt") and arquivo != "topologia.txt":
                 numero_do_nodo = arquivo.split('.')[0]  # Assume que o nome do arquivo é o número do nodo
-                endereco_nodo = "127.0.0.1"
-                porta_nodo = f"500{numero_do_nodo}"
+                endereco_nodo = "127.0.0.1" 
+                porta_nodo = f"500{numero_do_nodo}" 
                 identificador_nodo = f"{endereco_nodo}:{porta_nodo}"
                 self.grafo.adiciona_nodo(endereco_nodo, porta_nodo)
 
@@ -23,12 +23,13 @@ class Testes:
                     for linha in file:
                         endereco, porta = linha.strip().split(':')
                         self.grafo.adiciona_aresta(endereco_nodo, porta_nodo, endereco, porta)
+                
 
     def mostrar_grafo(self):
         """Imprime a representação do grafo."""
         print(self.grafo)
 
 # Uso da classe Testes
-testes = Testes(r"E:\EP Sistemas Distribuidos\arquivos\topologia_arvore_binaria")
+testes = Testes(r"C:\Flora\ep-Sistemas\arquivos\topologia_arvore_binaria")
 testes.carregar_arquivos()
 testes.mostrar_grafo()

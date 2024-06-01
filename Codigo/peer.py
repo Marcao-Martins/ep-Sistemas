@@ -3,19 +3,13 @@ import pickle
 import socket
 
 class Peer:
-
     # Inicia cada um dos nós - OK
     def __init__(self, endereco, porta):
         self.endereco = endereco
         self.porta = porta
         self.vizinhos = []
         self.chave_valor = {}  # Armazenamento de pares chave-valor
-
-    # Lista todos os vizinhos
-    # TODO: fiz praticamente um get mas talvez não seja a melhor opção (ou sim, porque na função que a gente vai precisar usar ele, vai ter que associar todas as linhas a um numero LÁ e não sei se dá pra fazer isso aqui)
-    def listar_vizinhos(self):
-        return self.vizinhos
-
+        
     # Inicia o servidor - OK
     def inicia_servidor(self):
         servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -29,7 +23,7 @@ class Peer:
             print(f'Connection from {addr}')
             threading.Thread(target=self.handle_client, args=(client_socket,)).start() # Cria nova thread para cada conexão de cliente
 
-    # Lida com as mensagens recebidas de um cliente conectado - OK
+    # Lida com as mensagens recebidas de um cliente conectado (quando um servidor aceita uma conexão ou quando nó adiciona um vizinho) - OK
     def handle_client(self, client_socket):
         while True:
             try:
@@ -48,21 +42,42 @@ class Peer:
 
     # Peer se conecta a outro peer na rede
     def conecta_peer(self, endereco_peer, porta_peer):
-        peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        peer_socket.connect((endereco_peer, porta_peer))
-        self.peers.append(peer_socket)
-        threading.Thread(target=self.handle_peer, args=(peer_socket,)).start()
-        print(f'Connected to peer {endereco_peer}:{porta_peer}')
+        try:
+            peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            peer_socket.connect((endereco_peer, porta_peer))
+
+            # Enviar a mensagem "hello"
+            mensagem = "hello"
+            peer_socket.sendall(mensagem.encode())
+            
+            # Receber a resposta do peer
+            resposta = peer_socket.recv(1024).decode()
+            
+            if resposta == "hello":
+                self.peers.append(peer_socket)
+                threading.Thread(target=self.handle_peer, args=(peer_socket,)).start()
+                print(f"Mensagem recebida: {endereco_peer}:{porta_peer} HELLO")
+                print(f"Adicionando vizinho na tabela: {self.endereco}:{self.porta}")
+            else:
+                peer_socket.close()
+                print(f"Conexão com {endereco_peer}:{porta_peer} recusada, resposta não foi 'hello'.")
+        
+        # print(f'Connected to peer {endereco_peer}:{porta_peer}')
         # TODO: adicionar mensagem "HELLO" para envio -> confirmação
 
     # Carrega os vizinhos
-    def load_neighbors(peer, filename):
+    def load_neighbors(self, peer, filename):
         with open(filename, 'r') as file:
             for line in file:
                 endereco_vizinho, porta_vizinho = line.strip().split(':')
                 print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
-                conecta_peer(peer, endereco_vizinho, int(porta_vizinho))
+                self.conecta_peer(peer, endereco_vizinho, int(porta_vizinho))
 
+    # Lista todos os vizinhos
+    # TODO: fiz praticamente um get mas talvez não seja a melhor opção (ou sim, porque na função que a gente vai precisar usar ele, vai ter que associar todas as linhas a um numero LÁ e não sei se dá pra fazer isso aqui)
+    def listar_vizinhos(self):
+        return self.vizinhos
+    
     # 
     def load_key_value_pairs(peer, filename):
         with open(filename, 'r') as file:
@@ -108,6 +123,21 @@ class Peer:
         self.chave_valor[chave] = valor
         print(f'Dados armazenados: {chave} -> {valor}')
 
+    # TODO: arrumar essa função 
+    def carrega_vizinhos(self, filename):
+        with open(filename, 'r') as file:
+            for line in file:
+                endereco_vizinho, porta_vizinho = line.strip().split(':')
+                print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
+                self.conecta_peer(self, endereco_vizinho, int(porta_vizinho))
+                # SE DEU CERTO; Adicionar em uma lista de vizinhos
+
+    # Carrega pares chave-valor de um txt e armazena no array "chave_valor" de um Peer - OK
+    def carrega_chave_valor(peer, filename):
+        with open(filename, 'r') as file:
+            for line in file:
+                chave, valor = line.strip().split(' ')
+                peer.armazena_valor(chave, valor)
 
     def envia_hello(self, endereco, porta):
         mensagem = {'type': 'HELLO'}
@@ -121,7 +151,7 @@ class Peer:
             print(f'Erro ao enviar HELLO para {endereco}:{porta}: {e}')
  
     # Tinha um parâmetro client_socket -> tirei, ver se vai fazer falta depois
-    def handle_request(self, request):
+    def handle_request(self, request, client_socket):
         from Grafo.buscas import flooding, random_walk, busca_em_profundidade
         
         # Acho que nao precisa disso aqui........ a não ser pra casos específicos (e se for usar os parâmetros mesmo nas funções)

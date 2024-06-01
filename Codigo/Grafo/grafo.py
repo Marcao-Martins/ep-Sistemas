@@ -3,6 +3,7 @@ class Grafo:
     def __init__(self):
         self.nodos = {}  # Dicionário para armazenar os nodos pelo identificador
 
+    # Adicionar parte de fazer a conexão entre os nodos aqui 
     def adiciona_nodo(self, endereco, porta):
         """Adiciona um novo nodo ao grafo se ele ainda não existir."""
         identificador = f"{endereco}:{porta}"
