@@ -1,6 +1,7 @@
 import threading
 import pickle
 import socket
+from Grafo.buscas import flooding, random_walk, busca_em_profundidade
 
 class Peer:
     # Inicia cada um dos nós - OK
@@ -33,7 +34,7 @@ class Peer:
                 if mensagem:
                     request = pickle.loads(mensagem)
                     print(f'Mensagem para ser enviada: {request}')
-                    self.handle_request(request) # tinha um client_socket aqui, mas tirei. Ver se não precisa depois
+                    self.handle_request(request, client_socket)
                 else:
                     break
             except Exception as e:
@@ -41,11 +42,16 @@ class Peer:
                 break
 
     # Peer se conecta a outro peer na rede
-    def conecta_peer(self, endereco_peer, porta_peer):
+    def conecta_peer(self, endereco, porta):
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            peer_socket.connect((endereco_peer, porta_peer))
+            peer_socket.connect((endereco, porta))
+            return peer_socket
+        except Exception as e:
+            print(f'Erro ao conectar o peer {endereco}:{porta}: {e}')
+            return None
 
+    """
             # Enviar a mensagem "hello"
             mensagem = "hello"
             peer_socket.sendall(mensagem.encode())
@@ -61,103 +67,70 @@ class Peer:
             else:
                 peer_socket.close()
                 print(f"Conexão com {endereco_peer}:{porta_peer} recusada, resposta não foi 'hello'.")
-        
+        except Exception as e:
+            print(f'Error connecting to peer {endereco}:{porta}: {e}')
+            return None
+
         # print(f'Connected to peer {endereco_peer}:{porta_peer}')
         # TODO: adicionar mensagem "HELLO" para envio -> confirmação
 
-    # Carrega os vizinhos
+    """
+
+    def adiciona_vizinho(self, endereco, porta):
+        # Verificar se o vizinho já está na lista de vizinhos
+        for vizinho_socket in self.vizinhos:
+            if vizinho_socket.getpeername() == (endereco, porta):
+                print(f'Vizinho {endereco}:{porta} já está na lista de vizinhos')
+                return
+    
+        mensagem = {'type': 'HELLO'}
+        try:
+            vizinho_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            vizinho_socket.connect((endereco, porta))
+            vizinho_socket.sendall(pickle.dumps(mensagem))
+            resposta = pickle.loads(vizinho_socket.recv(4096))
+            if resposta == "hello":
+                self.vizinhos.append(vizinho_socket)
+                threading.Thread(target=self.handle_client, args=(vizinho_socket,)).start()
+                print(f'Conexão estabelecida com vizinho {endereco}:{porta}')
+            else:
+                print(f'Falha na conexão com vizinho {endereco}:{porta}, resposta não foi "hello"')
+                vizinho_socket.close()
+        except Exception as e:
+            print(f'Erro ao conectar com vizinho {endereco}:{porta}: {e}')
+
+    # Carrega os vizinhos a partir de um arquivo txt
     def load_neighbors(self, peer, filename):
         with open(filename, 'r') as file:
             for line in file:
                 endereco_vizinho, porta_vizinho = line.strip().split(':')
                 print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
-                self.conecta_peer(peer, endereco_vizinho, int(porta_vizinho))
-
-    # Lista todos os vizinhos
-    # TODO: fiz praticamente um get mas talvez não seja a melhor opção (ou sim, porque na função que a gente vai precisar usar ele, vai ter que associar todas as linhas a um numero LÁ e não sei se dá pra fazer isso aqui)
-    def listar_vizinhos(self):
-        return self.vizinhos
+                self.adiciona_vizinho(peer, endereco_vizinho, int(porta_vizinho))
     
-    # 
+    # Armazena um par chave-valor no dicionário 'chave_valor' do peer - OK
+    def armazena_valor(self, chave, valor):
+        self.chave_valor[chave] = valor
+        print(f'Dados armazenados: {chave} -> {valor}')
+
+    # Carrega os pares chave-valores a partir de um arquivo txt
     def load_key_value_pairs(peer, filename):
         with open(filename, 'r') as file:
             for line in file:
                 chave, valor = line.strip().split(' ')
                 peer.armazena_valor(chave, valor)
 
-
-    # Recebe a mensagem e decide como lidar com ele
-    def handle_peer(self, peer_socket):
-        while True:
-            try:
-                mensagem = peer_socket.recv(4096)
-                if mensagem:
-                    request = pickle.loads(mensagem)
-                    print(f'Received mensagem from peer: {request}')
-                    self.handle_request(request, peer_socket)
-                else:
-                    break
-            except Exception as e:
-                print(f'Error: {e}')
-                break
-
-    # TODO: ver se vai precisar de todos esses tipos de mensagem mesmo
-
-    # Envia mensagem para determinado peer
-    def envia_mensagem (self, peer_socket, mensagem):
-        peer_socket.send(pickle.dumps(mensagem))
-
-    # Transmite a mensagem para os outros nós, exceto o atual
-    def transmite_mensagem(self, mensagem):
-        print(f'Broadcasting mensagem: {mensagem}')
-        for peer in self.peers:
-            self.envia_mensagem(peer, mensagem)
-
-    # Envia mensagem para todos os peers, incluindo o nó atual
-    def envia_mensagem_para_peers(self, mensagem):
-        for peer in self.peers:
-            self.envia_mensagem(peer, mensagem)
-
-    # Armazena um par chave-valor no dicionário 'chave_valor' do peer - OK
-    def armazena_valor(self, chave, valor):
-        self.chave_valor[chave] = valor
-        print(f'Dados armazenados: {chave} -> {valor}')
-
-    # TODO: arrumar essa função 
-    def carrega_vizinhos(self, filename):
-        with open(filename, 'r') as file:
-            for line in file:
-                endereco_vizinho, porta_vizinho = line.strip().split(':')
-                print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
-                self.conecta_peer(self, endereco_vizinho, int(porta_vizinho))
-                # SE DEU CERTO; Adicionar em uma lista de vizinhos
-
-    # Carrega pares chave-valor de um txt e armazena no array "chave_valor" de um Peer - OK
-    def carrega_chave_valor(peer, filename):
-        with open(filename, 'r') as file:
-            for line in file:
-                chave, valor = line.strip().split(' ')
-                peer.armazena_valor(chave, valor)
-
-    def envia_hello(self, endereco, porta):
-        mensagem = {'type': 'HELLO'}
-        try:
-            peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            peer_socket.connect((endereco, porta))
-            peer_socket.send(pickle.dumps(mensagem))
-            peer_socket.close()
-            print(f'Enviou HELLO para {endereco}:{porta}')
-        except Exception as e:
-            print(f'Erro ao enviar HELLO para {endereco}:{porta}: {e}')
- 
-    # Tinha um parâmetro client_socket -> tirei, ver se vai fazer falta depois
+    # Verificar o STORE e ver se tá passando a mensagem de forma certinha :)
     def handle_request(self, request, client_socket):
-        from Grafo.buscas import flooding, random_walk, busca_em_profundidade
-        
-        # Acho que nao precisa disso aqui........ a não ser pra casos específicos (e se for usar os parâmetros mesmo nas funções)
-        if request['type'] == 'HELLO':
-            # Envia 'HELLO' para um nó
-        elif request['type'] == 'SEARCH':
+        operacao = request.get('type')
+
+        if operacao == 'HELLO':
+            self.handle_hello(client_socket)
+        elif operacao == 'SEARCH':
+            self.handle_search(request, client_socket)
+        #elif operacao == "STORE":
+        # Não tenho certeza se essa STORE precisa
+            # self.handle_store(request, client_socket)
+            """
             chave = request['chave']
             metodo = request['metodo']
             origem = request['origem']
@@ -173,7 +146,7 @@ class Peer:
                 visitados = request['visitados']
                 busca_em_profundidade(self, chave, origem, ttl, seq_no,)
         # Ver se vai usar esse FOUND e se precisa de algum outro
-        elif request['type'] == 'FOUND':
+        elif operacao == 'FOUND':
             chave = request['chave']
             valor = request['valor']
             origem = request['origem']
@@ -181,3 +154,84 @@ class Peer:
                 print(f'Found data: {chave} -> {valor}')
             else:
                 self.envia_mensagem_para_peers(request)
+            
+            """
+    
+    def handle_hello(self, client_socket):
+        try:
+            client_socket.sendall(pickle.dumps("hello"))
+            print(f'Enviou HELLO para {self.endereco}:{self.porta}')
+        except Exception as e:
+            print(f'Erro ao enviar HELLO para {self.endereco}:{self.porta}: {e}')
+
+    def handle_search(self, request, client_socket):
+        print("Começando processo de busca")
+        chave = request.get('chave')
+        metodo = request.get('metodo')
+        origem = request.get('origem')
+        ttl = request.get('ttl')
+        seq_no = request.get('seq_no')
+        
+        if metodo == 'FLOODING':
+            mensagem = {
+            'chave': chave,
+            'metodo': metodo,
+            'origem': origem,
+            'ttl': ttl,
+            'seq_no': seq_no
+            }
+            flooding(mensagem, client_socket)
+        elif metodo == 'RANDOM_WALK':
+            ultimo_vizinho = request.get('ultimo_vizinho')
+            mensagem = {
+            'chave': chave,
+            'metodo': metodo,
+            'origem': origem,
+            'ttl': ttl,
+            'seq_no': seq_no,
+            'ultimo_vizinho': ultimo_vizinho
+            }
+            random_walk(mensagem, client_socket)
+        elif metodo == 'DFS':
+            visitados = request.get('visitados')
+            mensagem = {
+            'chave': chave,
+            'metodo': metodo,
+            'origem': origem,
+            'ttl': ttl,
+            'seq_no': seq_no
+            }
+            busca_em_profundidade(mensagem, client_socket)
+        """
+        elif ttl > 0:
+            ttl -= 1
+            hop_count += 1
+            mensagem = {
+                'origin': origin,
+                'seqno': seqno,
+                'ttl': ttl,
+                'search': 'SEARCH',
+                'mode': mode,
+                'last_hop_port': self.porta,
+                'key': key,
+                'hop_count': hop_count
+            }
+            self.encaminha_mensagem(mensagem, client_socket)
+        """
+
+    # Envia mensagem para determinado peer
+    def envia_mensagem (self, peer_socket, mensagem):
+        try:
+            peer_socket.send(pickle.dumps(mensagem))
+        except Exception as e:
+            print(f'Erro ao enviar mensagem para o peer: {e}')
+
+    # Transmite a mensagem para os outros nós, exceto o atual
+    def transmite_mensagem(self, mensagem, exclude_socket=None):
+        print(f'Transmitindo a mensagem: {mensagem}')
+        for vizinho in self.vizinhos:
+            if vizinho != exclude_socket:
+                try:
+                    self.envia_mensagem(vizinho, mensagem)
+                except Exception as e:
+                    print(f'Error forwarding message to neighbor: {e}')
