@@ -6,7 +6,7 @@ class Nodo:
         self.vizinhos = set()  # Conjunto de identificadores de vizinhos (endereço:porta)
         self.pares_chave_valor = {}  # Dicionário para armazenar pares chave-valor
 
-    def adiciona_vizinho(self, vizinho):
+    def adicionar_vizinho(self, vizinho):
         """Adiciona um vizinho ao conjunto de vizinhos do nodo."""
         self.vizinhos.add(vizinho)
 
@@ -18,16 +18,11 @@ class Nodo:
         """Obtém o valor para uma chave especificada, se presente."""
         return self.pares_chave_valor.get(chave)
     
-    def busca_local(self,chave):
+    def busca_local(self, chave):
         """Busca local por uma chave e retorna o valor se encontrado."""
-        valor = self.pares_chave_valor.get(chave)
-        if valor:
-            return f"Chave: {chave}, Valor: {valor}"
-        print("Chave não encontrada nos vizinhos")
-        return None
-    
+        return self.pares_chave_valor.get(chave)
 
     def __str__(self):
-        """Retorna uma representação em string do nodo, incluindo seu identificador e número de vizinhos."""
-        return f"Nodo {self.identificador} com {len(self.vizinhos)} vizinhos e {len(self.pares_chave_valor)} pares chave-valor."
-
+        """Retorna uma representação em string do nodo, incluindo seu identificador e vizinhos."""
+        vizinhos_str = "\n  ".join(self.vizinhos)
+        return f"{self.identificador} com {len(self.vizinhos)} vizinhos:\n  {vizinhos_str}"

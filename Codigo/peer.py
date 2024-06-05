@@ -1,7 +1,6 @@
 import threading
 import pickle
 import socket
-from Grafo.buscas import flooding, random_walk, busca_em_profundidade
 
 class Peer:
     # Inicia cada um dos nós - OK
@@ -165,6 +164,8 @@ class Peer:
             print(f'Erro ao enviar HELLO para {self.endereco}:{self.porta}: {e}')
 
     def handle_search(self, request, client_socket):
+        from Grafo.buscas import flooding, random_walk, busca_em_profundidade
+        
         print("Começando processo de busca")
         chave = request.get('chave')
         metodo = request.get('metodo')

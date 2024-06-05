@@ -1,7 +1,14 @@
 import random
 import random
 import pickle
-from Codigo.peer import Peer
+
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Agora você pode importar o peer.py
+from peer import Peer
+
 class Buscas:
     def __init__(self, grafo, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.grafo = grafo
@@ -31,7 +38,7 @@ class Buscas:
         nodo_origem = self.grafo.obtem_nodo(*origem.split(':'))
         resultado = nodo_origem.busca_local(chave)
         if resultado:
-            return f"Chave encontrada: {resultado}"
+            return f"Chave encontrada: {resultado}",
 
         if ttl > 0:
             visitados.add(origem)
