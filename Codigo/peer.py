@@ -1,6 +1,7 @@
 import threading
 import pickle
 import socket
+import time
 
 class Peer:
     # Inicia cada um dos nós - OK
@@ -9,18 +10,19 @@ class Peer:
         self.porta = porta
         self.vizinhos = []
         self.chave_valor = {}  # Armazenamento de pares chave-valor
+        self.mensagens_vistas = set() # Para armazenar mensagens já vistas
         
     # Inicia o servidor - OK
     def inicia_servidor(self):
         servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         servidor.bind((self.endereco, self.porta))
         servidor.listen(5) # 5 é o número máximo de conexões pendentes que o sistema permitirá antes de recusar novas conexões
-        print(f'Servidor iniciado em {self.endereco}:{self.porta}')
+        print(f'Servidor criado: {self.endereco}:{self.porta}')
         
         # Mantém o servidor em execução contínua, permitindo que ele aceite conexões de clientes indefinidamente
         while True:
             client_socket, addr = servidor.accept() # Bloqueia a execução até que uma nova conexão seja aceita
-            print(f'Connection from {addr}')
+            print(f'Conexão de {addr}')
             threading.Thread(target=self.handle_client, args=(client_socket,)).start() # Cria nova thread para cada conexão de cliente
 
     # Lida com as mensagens recebidas de um cliente conectado (quando um servidor aceita uma conexão ou quando nó adiciona um vizinho) - OK
@@ -83,28 +85,41 @@ class Peer:
                 return
     
         mensagem = {'type': 'HELLO'}
-        try:
-            vizinho_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            vizinho_socket.connect((endereco, porta))
-            vizinho_socket.sendall(pickle.dumps(mensagem))
-            resposta = pickle.loads(vizinho_socket.recv(4096))
-            if resposta == "hello":
-                self.vizinhos.append(vizinho_socket)
-                threading.Thread(target=self.handle_client, args=(vizinho_socket,)).start()
-                print(f'Conexão estabelecida com vizinho {endereco}:{porta}')
-            else:
-                print(f'Falha na conexão com vizinho {endereco}:{porta}, resposta não foi "hello"')
-                vizinho_socket.close()
-        except Exception as e:
+        print(mensagem)
+        print(f"Enviando mensagem de HELLO para {endereco}:{porta}")
+
+        vizinho_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        print("passoou")
+        print(endereco)
+        print(porta)
+        vizinho_socket.connect((endereco, porta))
+        print("passoooooou")
+        vizinho_socket.sendall(pickle.dumps(mensagem))
+        print("passoooooooooou")
+        resposta = pickle.loads(vizinho_socket.recv(4096))
+        print("passoooooooooooooou tudo antes do if")
+        if resposta == "hello":
+            print("teste 2 if resposta == hello")
+            self.vizinhos.append(vizinho_socket)
+            threading.Thread(target=self.handle_client, args=(vizinho_socket,)).start()
+            print(f'Conexão estabelecida com vizinho {endereco}:{porta}')
+        else:
+            print(f'Falha na conexão com vizinho {endereco}:{porta}, resposta não foi "hello"')
+            vizinho_socket.close()
+        # except Exception as e:
             print(f'Erro ao conectar com vizinho {endereco}:{porta}: {e}')
 
     # Carrega os vizinhos a partir de um arquivo txt
     def load_neighbors(self, peer, filename):
+        print("estou tentando achar")
         with open(filename, 'r') as file:
             for line in file:
+                print("lendo linha.....")
                 endereco_vizinho, porta_vizinho = line.strip().split(':')
                 print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
-                self.adiciona_vizinho(peer, endereco_vizinho, int(porta_vizinho))
+                # vizinho = Peer(endereco_vizinho, porta_vizinho)
+                self.adiciona_vizinho(endereco_vizinho, int(porta_vizinho))
     
     # Armazena um par chave-valor no dicionário 'chave_valor' do peer - OK
     def armazena_valor(self, chave, valor):

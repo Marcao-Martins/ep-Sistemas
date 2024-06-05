@@ -1,6 +1,8 @@
 import random
 import random
 import pickle
+import threading
+import time
 
 import sys
 import os
@@ -13,13 +15,21 @@ class Buscas:
     def __init__(self, grafo, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.grafo = grafo
         self.peer = Peer(endereco, porta)  # Instanciando a classe Peer
+
+        # Inicializa o servidor em uma thread separada
+        self.server_thread = threading.Thread(target=self.inicia_servidor)
+        self.server_thread.daemon = True  # Isso permite que o programa termine mesmo que o servidor esteja rodando
+        self.server_thread.start()
+
+        # Aguarda um breve intervalo para garantir que o servidor esteja iniciado
+        time.sleep(1)
         
         if arquivo_vizinhos:
-            self.peer.load_neighbors(arquivo_vizinhos)
+            self.peer.load_neighbors(self.peer, arquivo_vizinhos)
         if arquivo_chave_valor:
             self.peer.load_key_value_pairs(arquivo_chave_valor)
         
-        self.mensagens_vistas = set()  # Para armazenar mensagens já vistas
+        # Coloquei no init do peer self.mensagens_vistas = set()  # Para armazenar mensagens já vistas
 
     def flooding(self, mensagem):
         chave = mensagem['chave']
@@ -125,7 +135,7 @@ class Buscas:
         self.peer.adiciona_vizinho(endereco, porta)
 
     def load_neighbors(self, filename):
-        self.peer.load_neighbors(filename)
+        self.peer.load_neighbors(self.peer ,filename)
 
     def armazena_valor(self, chave, valor):
         self.peer.armazena_valor(chave, valor)
