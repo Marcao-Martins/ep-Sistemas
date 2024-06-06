@@ -15,14 +15,6 @@ class Buscas:
     def __init__(self, grafo, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.grafo = grafo
         self.peer = Peer(endereco, porta)  # Instanciando a classe Peer
-
-        # Inicializa o servidor em uma thread separada
-        self.server_thread = threading.Thread(target=self.inicia_servidor)
-        self.server_thread.daemon = True  # Isso permite que o programa termine mesmo que o servidor esteja rodando
-        self.server_thread.start()
-
-        # Aguarda um breve intervalo para garantir que o servidor esteja iniciado
-        time.sleep(1)
         
         if arquivo_vizinhos:
             self.peer.load_neighbors(self.peer, arquivo_vizinhos)

@@ -11,6 +11,14 @@ class Peer:
         self.vizinhos = []
         self.chave_valor = {}  # Armazenamento de pares chave-valor
         self.mensagens_vistas = set() # Para armazenar mensagens já vistas
+
+        # Inicializa o servidor em uma thread separada
+        self.server_thread = threading.Thread(target=self.inicia_servidor)
+        self.server_thread.daemon = True  # Isso permite que o programa termine mesmo que o servidor esteja rodando
+        self.server_thread.start()
+
+        # Aguarda um breve intervalo para garantir que o servidor esteja iniciado
+        time.sleep(1)
         
     # Inicia o servidor - OK
     def inicia_servidor(self):
@@ -40,13 +48,14 @@ class Peer:
                     break
             except Exception as e:
                 print(f'Error: {e}')
+                peer_socket.close()
                 break
 
     # Peer se conecta a outro peer na rede
     def conecta_peer(self, endereco, porta):
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            peer_socket.connect((endereco, porta))
+            peer_socket.connect((endereco, porta)) # Isso aqui nao tá funcionando no meu pc MORTEEEEEE
             return peer_socket
         except Exception as e:
             print(f'Erro ao conectar o peer {endereco}:{porta}: {e}')
@@ -84,16 +93,15 @@ class Peer:
                 print(f'Vizinho {endereco}:{porta} já está na lista de vizinhos')
                 return
 
-        vizinho_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        vizinho_socket.connect((endereco, porta)) # Isso aqui nao tá funcionando no meu pc MORTEEEEEE
+        vizinho_socket = self.conecta_peer(endereco, porta)
+        print("PASSSOU")
+        resposta = self.handle_hello(vizinho_socket)
 
         """
         vizinho_socket.connect((endereco, porta))
         vizinho_socket.sendall(pickle.dumps(mensagem))
         resposta = pickle.loads(vizinho_socket.recv(4096))
         """
-        print("PASSSOU")
-        resposta = self.handle_hello(vizinho_socket)
 
         if resposta == "hello":
             print("teste 2 if resposta == hello")
