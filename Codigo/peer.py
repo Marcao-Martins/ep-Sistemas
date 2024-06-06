@@ -12,7 +12,7 @@ class Peer:
         self.vizinhos = []
         self.chave_valor = {}  # Armazenamento de pares chave-valor
         self.mensagens_vistas = set() # Para armazenar mensagens já vistas
-        self.seq_no = 0
+        self.seq_no = 1
 
         # Inicializa o servidor em uma thread separada
         self.server_thread = threading.Thread(target=self.inicia_servidor)
@@ -33,25 +33,39 @@ class Peer:
         while True:
             peer_socket, addr = servidor.accept() # Bloqueia a execução até que uma nova conexão seja aceita
             print(f'Conexão de {addr}')
-            threading.Thread(target=self.handle_peer, args=(peer_socket,)).start() # Cria nova thread para cada conexão de cliente
+            endereco_vizinho, porta_vizinho = addr  # Obtém o endereço e porta do vizinho
+            # threading.Thread(target=self.handle_peer, args=(peer_socket,)).start() # Cria nova thread para cada conexão de cliente
+            threading.Thread(target=self.handle_peer, args=(peer_socket, endereco_vizinho, porta_vizinho)).start()
+
+
 
     # Lida com as mensagens recebidas de um peer conectado (quando um servidor aceita uma conexão ou quando nó adiciona um vizinho) - OK
-    def handle_peer(self, peer_socket):
-        while True:
-            try:
-                mensagem = peer_socket.recv(4096) # Recebe a mensagem
-                
-                # Se houver uma mensagem, ele lida com ela usando o handle_request
-                if mensagem:
-                    request = pickle.loads(mensagem)
-                    print(f'Mensagem para ser enviada: {request}')
-                    self.handle_request(request, peer_socket)
-                else:
+    def handle_peer(self, peer_socket, endereco_vizinho, porta_vizinho):
+        try:
+            # endereco_vizinho, porta_vizinho = peer_socket.getpeername()
+            print(endereco_vizinho)
+            print(porta_vizinho)
+            # print(f'Conexão estabelecida com vizinho {endereco_vizinho}:{porta_vizinho}')
+        
+            self.adiciona_vizinho(endereco_vizinho, porta_vizinho)
+            while True:
+                try:
+                    mensagem = peer_socket.recv(4096) # Recebe a mensagem
+                    
+                    # Se houver uma mensagem, ele lida com ela usando o handle_request
+                    if mensagem:
+                        request = pickle.loads(mensagem)
+                        print(f'Mensagem para ser enviada: {request}')
+                        self.handle_request(request, peer_socket)
+                    else:
+                        break
+                except Exception as e:
+                    print(f'Error: {e}')
                     break
-            except Exception as e:
-                print(f'Error: {e}')
-                peer_socket.close()
-                break
+        except:
+            print('Erro :( ')
+        finally:
+            peer_socket.close()
 
     # Peer se conecta a outro peer na rede
     def conecta_peer(self, endereco, porta):
@@ -71,24 +85,24 @@ class Peer:
                 return
         mensagem = self.formata_mensagem('HELLO')
         self.log_encaminhamento(mensagem, endereco, porta)
-
+        self.seq_no += 1 # acho que não é aqui que incrementa
+    #while True:
         try:
             vizinho_socket = self.conecta_peer(endereco, porta)
             if vizinho_socket:
-                self.seq_no += 1
                 # se pa da pra substituir isso aqui por algum handle
                 resposta = self.handle_request('HELLO', vizinho_socket)
                 # self.envia_mensagem(vizinho_socket, mensagem)
                 # resposta = vizinho_socket.recv(4096)
                 # resposta = pickle.loads(resposta)
-                if resposta == "hello":
+                if resposta == "HELLO_OK ":
                     self.vizinhos.append(vizinho_socket)
                     threading.Thread(target=self.handle_peer, args=(vizinho_socket,)).start()
                     print(f'Conexão estabelecida com vizinho {endereco}:{porta}')
                 else:
-                    vizinho_socket.close()
+                    print('erro')
         except:
-            # print(f'    Erro ao conectar!')
+            print(f'    Erro ao conectar!')
             return None
         
     def formata_mensagem(self, operacao, *argumentos):
@@ -112,7 +126,7 @@ class Peer:
     # Armazena um par chave-valor no dicionário 'chave_valor' do peer - OK
     def armazena_valor(self, chave, valor):
         self.chave_valor[chave] = valor
-        print(f'Dados armazenados: {chave} -> {valor}')
+        print(f'\n Adicionando par ({chave}, {valor}) na tabela local')
 
     # Carrega os pares chave-valores a partir de um arquivo txt
     def load_key_value_pairs(peer, filename):
@@ -133,7 +147,8 @@ class Peer:
     
     def handle_hello(self, peer_socket):
         try:
-            peer_socket.sendall(pickle.dumps("hello"))
+            response = {'type': 'HELLO_OK'}
+            peer_socket.sendall(pickle.dumps(response))
             resposta = peer_socket.recv(4096)
             resposta = pickle.loads(resposta)
             print(f'Enviou HELLO para {self.endereco}:{self.porta}')
@@ -197,6 +212,7 @@ class Peer:
 
     # Envia mensagem para determinado peer
     def envia_mensagem (self, peer_socket, mensagem):
+        # mensagem = self.formata_mensagem(operacao, *argumentos)
         try:
             peer_socket.send(pickle.dumps(mensagem))
         except:

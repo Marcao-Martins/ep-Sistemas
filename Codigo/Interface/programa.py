@@ -32,6 +32,7 @@ class Interface:
 
     def exit_program(self):
         print("Saindo...")
+        # tem que enviar um 'BYE' aqui
         self.running = False
         
     def handle_choice(self, choice):
