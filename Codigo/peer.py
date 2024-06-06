@@ -92,34 +92,28 @@ class Peer:
             if vizinho_socket.getpeername() == (endereco, porta):
                 print(f'Vizinho {endereco}:{porta} já está na lista de vizinhos')
                 return
+        try:
+            vizinho_socket = self.conecta_peer(endereco, porta)
+            resposta = self.handle_hello(vizinho_socket)
 
-        vizinho_socket = self.conecta_peer(endereco, porta)
-        print("PASSSOU")
-        resposta = self.handle_hello(vizinho_socket)
-
-        """
-        vizinho_socket.connect((endereco, porta))
-        vizinho_socket.sendall(pickle.dumps(mensagem))
-        resposta = pickle.loads(vizinho_socket.recv(4096))
-        """
-
-        if resposta == "hello":
-            print("teste 2 if resposta == hello")
-            self.vizinhos.append(vizinho_socket)
-            threading.Thread(target=self.handle_client, args=(vizinho_socket,)).start()
-            print(f'Conexão estabelecida com vizinho {endereco}:{porta}')
-        else:
-            print(f'Falha na conexão com vizinho {endereco}:{porta}, resposta não foi "hello"')
-            vizinho_socket.close()
-        # except Exception as e:
-            print(f'Erro ao conectar com vizinho {endereco}:{porta}')
+            if resposta == "hello":
+                self.vizinhos.append(vizinho_socket)
+                threading.Thread(target=self.handle_client, args=(vizinho_socket,)).start()
+                print(f'Conexão estabelecida com vizinho {endereco}:{porta}')
+            else:
+                print(f'Falha na conexão com vizinho {endereco}:{porta}, resposta não foi "hello"')
+                vizinho_socket.close()
+            # except Exception as e:
+                print(f'Erro ao conectar com vizinho {endereco}:{porta}')
+        except Exception as e:
+            print(f"Erro ao adicionar vizinho {endereco}:{porta}: {e}")
+            return None
+  
 
     # Carrega os vizinhos a partir de um arquivo txt
     def load_neighbors(self, peer, filename):
-        print("estou tentando achar")
         with open(filename, 'r') as file:
             for line in file:
-                print("lendo linha.....")
                 endereco_vizinho, porta_vizinho = line.strip().split(':')
                 print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
                 # vizinho = Peer(endereco_vizinho, porta_vizinho)
