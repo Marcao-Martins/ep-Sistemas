@@ -17,7 +17,7 @@ class Buscas:
         self.peer = Peer(endereco, porta)  # Instanciando a classe Peer
         
         if arquivo_vizinhos:
-            self.peer.load_neighbors(self.peer, arquivo_vizinhos)
+            self.peer.load_neighbors(arquivo_vizinhos)
         if arquivo_chave_valor:
             self.peer.load_key_value_pairs(arquivo_chave_valor)
         

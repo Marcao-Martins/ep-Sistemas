@@ -55,13 +55,12 @@ class Peer:
 
     # Peer se conecta a outro peer na rede
     def conecta_peer(self, endereco, porta):
-        print('teste')
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             peer_socket.connect((endereco, porta))
             return peer_socket
         except:
-            print(f'Erro ao conectar!')
+            print(f'    Erro ao conectar!')
             return None
 
     def adiciona_vizinho(self, endereco, porta):
@@ -89,7 +88,7 @@ class Peer:
                 else:
                     vizinho_socket.close()
         except:
-            print(f'    Erro ao conectar!')
+            # print(f'    Erro ao conectar!')
             return None
         
     def formata_mensagem(self, operacao, *argumentos):
