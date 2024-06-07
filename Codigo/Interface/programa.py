@@ -28,7 +28,7 @@ class Interface:
         print("[4] SEARCH (busca em profundidade)")
         print("[5] Estatísticas")
         print("[6] Alterar valor padrão de TTL")
-        print("[9] Sair")
+        print("[9] Sair\n")
 
     def exit_program(self):
         print("Saindo...")
@@ -56,7 +56,7 @@ class Interface:
             print("Opção inválida. Tente novamente.")
 
     def list_neighbors(self):
-        print("Listando vizinhos:")
+        print(f"Há {len(self.buscas.peer.vizinhos)} vizinhos na tabela:")
         for i, vizinho in enumerate(self.buscas.peer.vizinhos):
             print(f"[{i}] {vizinho}")
 
@@ -64,8 +64,10 @@ class Interface:
         self.list_neighbors()
         choice = int(input("Escolha o vizinho para enviar HELLO: ").strip())
         if 0 <= choice < len(self.buscas.peer.vizinhos):
-            vizinho_socket = self.buscas.peer.vizinhos[choice]
-            self.buscas.peer.envia_mensagem(vizinho_socket, {'type': 'HELLO'})
+            vizinho_str = self.buscas.peer.vizinhos[choice]
+            endereco, porta = vizinho_str.split(':')
+            porta = int(porta)
+            self.buscas.peer.handle_hello(endereco, porta, 'MENU HELLO')
         else:
             print("Opção inválida. Tente novamente.")
 

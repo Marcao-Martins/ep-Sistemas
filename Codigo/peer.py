@@ -74,7 +74,7 @@ class Peer:
             # peer_socket.close()
 
             if operacao == "HELLO":
-                self.handle_hello(endereco_vizinho, porta_vizinho)
+                self.handle_hello(endereco_vizinho, porta_vizinho, 'ADC VIZINHO')
             elif operacao == "SEARCH":
                 self.handle_search(peer_socket, mensagem)
         
@@ -94,7 +94,14 @@ class Peer:
             return None
 
     def adiciona_vizinho(self, endereco, porta):
-        # mensagem = self.formata_mensagem(self, 'HELLO', endereco, porta)
+        """
+            Função com a lógica de adicionar um vizinho a partir do txt dado
+
+            agrs:
+                a
+            return:
+                a
+        """
         if f"{endereco}:{porta}" in self.vizinhos:
             print(f'Vizinho {endereco}:{porta} já está na tabela de vizinhos')
             return
@@ -121,9 +128,30 @@ class Peer:
         self.seq_no += 1
 
 
-    def handle_hello(self, endereco, porta):
-        print(f' Adicionando vizinho na tabela de {endereco}:{porta}')
-        self.vizinhos.append(f"{endereco}:{porta}")
+    def handle_hello(self, endereco, porta, op):
+        if op == 'ADC VIZINHO':
+            print(f' Adicionando vizinho na tabela de {endereco}:{porta}')
+            self.vizinhos.append(f"{endereco}:{porta}")
+
+        elif op == 'MENU HELLO': 
+            try:
+                mensagem = f"{self.endereco}:{self.porta} {self.seq_no} 1 HELLO"
+                print(f'Encaminhando mensagem "{mensagem}" para {endereco}:{porta}')
+                vizinho_socket = self.conecta_peer(endereco, porta)
+                vizinho_socket.send(mensagem.encode())
+                resposta =  self.envia_mensagem(vizinho_socket, mensagem)
+            
+                if resposta:
+                    print(f'    Envio feito com sucesso: {mensagem}')
+                else:
+                    print(f'    Não foi possível enviar a mensagem {mensagem}')
+            except:
+                resposta =  False
+            finally:
+                if vizinho_socket:
+                    vizinho_socket.close()
+
+        self.seq_no += 1
 
 
     def handle_search(self, request, peer_socket, mensagem):
