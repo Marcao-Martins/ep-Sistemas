@@ -14,6 +14,7 @@ from peer import Peer
 class Buscas:
     def __init__(self, grafo, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.grafo = grafo
+        
         self.peer = Peer(endereco, porta)  # Instanciando a classe Peer
         
         if arquivo_vizinhos:

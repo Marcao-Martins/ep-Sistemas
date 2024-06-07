@@ -58,8 +58,7 @@ class Interface:
     def list_neighbors(self):
         print("Listando vizinhos:")
         for i, vizinho in enumerate(self.buscas.peer.vizinhos):
-            vizinho_endereco, vizinho_porta = vizinho.getpeername()
-            print(f"[{i}] {vizinho_endereco}:{vizinho_porta}")
+            print(f"[{i}] {vizinho}")
 
     def send_hello(self):
         self.list_neighbors()
@@ -125,6 +124,7 @@ if __name__ == "__main__":
     arquivo_vizinhos = sys.argv[2] if len(sys.argv) > 2 else None
     arquivo_chave_valor = sys.argv[3] if len(sys.argv) > 3 else None
 
+    seq_no = 1
     interface = Interface(endereco, int(porta), arquivo_vizinhos, arquivo_chave_valor)
     interface.run()
 
