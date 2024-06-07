@@ -98,9 +98,9 @@ class Peer:
             Função com a lógica de adicionar um vizinho a partir do txt dado
 
             agrs:
-                a
-            return:
-                a
+                endereco (string):
+                porta (int):
+
         """
         if f"{endereco}:{porta}" in self.vizinhos:
             print(f'Vizinho {endereco}:{porta} já está na tabela de vizinhos')
@@ -111,8 +111,6 @@ class Peer:
             print(f'Encaminhando mensagem "{mensagem}" para {endereco}:{porta}')
 
             vizinho_socket = self.conecta_peer(endereco, porta)
-            vizinho_socket.send(mensagem.encode())
-
             resposta =  self.envia_mensagem(vizinho_socket, mensagem)
             if resposta:
                 print(f'    Envio feito com sucesso: {mensagem}')
@@ -138,7 +136,6 @@ class Peer:
                 mensagem = f"{self.endereco}:{self.porta} {self.seq_no} 1 HELLO"
                 print(f'Encaminhando mensagem "{mensagem}" para {endereco}:{porta}')
                 vizinho_socket = self.conecta_peer(endereco, porta)
-                vizinho_socket.send(mensagem.encode())
                 resposta =  self.envia_mensagem(vizinho_socket, mensagem)
             
                 if resposta:
@@ -197,15 +194,20 @@ class Peer:
 
     def envia_mensagem(self, peer_socket, mensagem):
         """
-            peer_socket: peer que está enviando a mensagem
-            mensagem: mensagem a ser enviada
+            Função feita para enviar mensagens e receber uma resposta
+
+            args:
+                peer_socket: peer que está enviando a mensagem
+                mensagem (string): mensagem a ser enviada
+            return:
+                resposta: resposta recebida a partir da função recv
         """
         try:
-            # end, porta = peer_socket.getpeername()
+            peer_socket.send(mensagem.encode())
             resposta = peer_socket.recv(4096).decode()
             return resposta
         except:
-            print(f'    Erro ao conectar!')
+            return
 
     def transmite_mensagem(self, mensagem, exclude_socket=None):
         print(f'Transmitindo a mensagem: {mensagem}')
