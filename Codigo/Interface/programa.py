@@ -6,11 +6,19 @@ import threading
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from Grafo.grafo import Grafo  # Ajuste conforme necessário
 from Grafo.buscas import Buscas
+from peer import Peer
+
 
 class Interface:
     def __init__(self, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.running = True
-        self.buscas = Buscas(endereco, porta, arquivo_vizinhos, arquivo_chave_valor)
+        self.buscas = Buscas()
+        self.peer = Peer(endereco, porta) # Instanciando a classe Peer
+        
+        if arquivo_vizinhos:
+            self.peer.load_neighbors(arquivo_vizinhos)
+        if arquivo_chave_valor:
+            self.peer.load_key_value_pairs(arquivo_chave_valor)
         
     def run(self):
         while self.running:
@@ -31,7 +39,7 @@ class Interface:
 
     def exit_program(self):
         print("Saindo...")
-        self.buscas.peer.remove_vizinho(endereco, porta)
+        self.peer.remove_vizinhos()
         self.running = False
         
     def handle_choice(self, choice):
@@ -55,18 +63,18 @@ class Interface:
             print("Opção inválida. Tente novamente.")
 
     def list_neighbors(self):
-        print(f"Há {len(self.buscas.peer.vizinhos)} vizinhos na tabela:")
-        for i, vizinho in enumerate(self.buscas.peer.vizinhos):
+        print(f"Há {len(self.peer.vizinhos)} vizinhos na tabela:")
+        for i, vizinho in enumerate(self.peer.vizinhos):
             print(f"[{i}] {vizinho}")
 
     def send_hello(self):
         self.list_neighbors()
         choice = int(input("Escolha o vizinho para enviar HELLO: ").strip())
-        if 0 <= choice < len(self.buscas.peer.vizinhos):
-            vizinho_str = self.buscas.peer.vizinhos[choice]
+        if 0 <= choice < len(self.peer.vizinhos):
+            vizinho_str = self.peer.vizinhos[choice]
             endereco, porta = vizinho_str.split(':')
             porta = int(porta)
-            self.buscas.peer.handle_hello(endereco, porta, 'MENU HELLO')
+            self.peer.handle_hello(endereco, porta, 'MENU HELLO')
         else:
             print("Opção inválida. Tente novamente.")
 
@@ -74,8 +82,8 @@ class Interface:
         chave = input("Digite a chave a ser buscada: ").strip()
         mensagem = {
             'chave': chave,
-            'origem': f"{self.buscas.peer.endereco}:{self.buscas.peer.porta}",
-            'ttl': self.buscas.peer.ttl_padrao,
+            'origem': f"{self.peer.endereco}:{self.peer.porta}",
+            'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
             'metodo': 'FLOODING',
             'visitados': set()
@@ -87,8 +95,8 @@ class Interface:
         chave = input("Digite a chave a ser buscada: ").strip()
         mensagem = {
             'chave': chave,
-            'origem': f"{self.buscas.peer.endereco}:{self.buscas.peer.porta}",
-            'ttl': self.buscas.peer.ttl_padrao,
+            'origem': f"{self.peer.endereco}:{self.peer.porta}",
+            'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
             'metodo': 'RANDOM_WALK'
         }
@@ -99,8 +107,8 @@ class Interface:
         chave = input("Digite a chave a ser buscada: ").strip()
         mensagem = {
             'chave': chave,
-            'origem': f"{self.buscas.peer.endereco}:{self.buscas.peer.porta}",
-            'ttl': self.buscas.peer.ttl_padrao,
+            'origem': f"{self.peer.endereco}:{self.peer.porta}",
+            'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
             'metodo': 'DFS',
             'visitados': set()
@@ -113,7 +121,7 @@ class Interface:
 
     def change_ttl(self):
         novo_ttl = int(input("Digite o novo valor de TTL: ").strip())
-        self.buscas.peer.ttl_padrao = novo_ttl
+        self.peer.ttl_padrao = novo_ttl
         print(f"Novo TTL definido para: {novo_ttl}")
 
 if __name__ == "__main__":

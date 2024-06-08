@@ -33,7 +33,7 @@ class Peer:
             threading.Thread(target=self.handle_peer, args=(peer_socket,)).start()
 
     def formata_mensagem(self, operacao, *argumentos):
-        mensagem = f"{self.endereco}:{self.porta} {self.seq_no} 1 {operacao}"
+        mensagem = f'{self.endereco}:{self.porta} {self.seq_no} 1 {operacao}'
         if argumentos:
             mensagem += " " + " ".join(map(str, argumentos))
         return mensagem + "\n"
@@ -66,12 +66,11 @@ class Peer:
     def handle_peer(self, peer_socket):
         try:
             mensagem = peer_socket.recv(1024).decode()  # Lê a mensagem enviada pelo peer
-            print(f"Mensagem recebida pelo servidor: {mensagem}")
+            print(f'Mensagem recebida pelo servidor: "{mensagem}"')
             endereco_vizinho, porta_vizinho, operacao = self.extrai_informacoes_da_mensagem(mensagem)
-            print(f"Essa é a operacao desejada: {operacao}")
             
             # Envia resposta de OK
-            peer_socket.send(f"{operacao}_OK".encode())
+            peer_socket.send(f'{operacao}_OK'.encode())
             # peer_socket.close()
 
             if operacao == "HELLO":
@@ -105,19 +104,19 @@ class Peer:
                 porta (int):
 
         """
-        if f"{endereco}:{porta}" in self.vizinhos:
+        if f'{endereco}:{porta}' in self.vizinhos:
             print(f'Vizinho {endereco}:{porta} já está na tabela de vizinhos')
             return
         
         try: 
-            mensagem = f"{self.endereco}:{self.porta} {self.seq_no} 1 HELLO"
+            mensagem = f'{self.endereco}:{self.porta} {self.seq_no} 1 HELLO'
             print(f'Encaminhando mensagem "{mensagem}" para {endereco}:{porta}')
 
             vizinho_socket = self.conecta_peer(endereco, porta)
             resposta =  self.envia_mensagem(vizinho_socket, mensagem)
             if resposta == "HELLO_OK":
                 print(f'    Envio feito com sucesso: {mensagem}')
-                self.vizinhos.append(f"{endereco}:{porta}")
+                self.vizinhos.append(f'{endereco}:{porta}')
             else:
                 print(f'    Não foi possível enviar a mensagem {mensagem}')
         except:
@@ -131,12 +130,12 @@ class Peer:
 
     def handle_hello(self, endereco, porta, op):
         if op == 'ADC VIZINHO':
-            print(f' Adicionando vizinho na tabela de {endereco}:{porta}')
-            self.vizinhos.append(f"{endereco}:{porta}")
+            print(f'    Adicionando vizinho na tabela de {endereco}:{porta}\n')
+            self.vizinhos.append(f'{endereco}:{porta}')
 
         elif op == 'MENU HELLO': 
             try:
-                mensagem = f"{self.endereco}:{self.porta} {self.seq_no} 1 HELLO"
+                mensagem = f'{self.endereco}:{self.porta} {self.seq_no} 1 HELLO'
                 print(f'Encaminhando mensagem "{mensagem}" para {endereco}:{porta}')
                 vizinho_socket = self.conecta_peer(endereco, porta)
                 resposta =  self.envia_mensagem(vizinho_socket, mensagem)
@@ -153,21 +152,22 @@ class Peer:
 
         self.seq_no += 1
 
-    def remove_vizinho(self, endereco, porta):
-        mensagem = f"{self.endereco}:{self.porta} {self.seq_no} 1 BYE" # Constrói mensagens que vai enviar para vizinhos
+    def remove_vizinhos(self):
+        mensagem = f'{self.endereco}:{self.porta} {self.seq_no} 1 BYE' # Constrói mensagens que vai enviar para vizinhos
 
-        for vizinho_str in self.vizinhos:
+            # Cria uma cópia da lista de vizinhos para evitar problemas ao remover elementos durante a iteração
+        vizinhos_copia = self.vizinhos.copy()
+
+        for vizinho_str in vizinhos_copia:
             try:    
                 endereco_vizinho, porta_vizinho = vizinho_str.split(':')
                 porta_vizinho = int(porta_vizinho)
-                print(f"remove_vizinho(), {endereco_vizinho}, {porta_vizinho}")
                 print(f'Encaminhando mensagem "{mensagem}" para {endereco_vizinho}:{porta_vizinho}')
                 vizinho_socket = self.conecta_peer(endereco_vizinho, porta_vizinho)
                 resposta =  self.envia_mensagem(vizinho_socket, mensagem)
                 if resposta == "BYE_OK":
                     print(f'    Envio feito com sucesso: {mensagem}')
-                    print(self.vizinhos)
-                    self.vizinhos.remove(f"{endereco_vizinho}:{porta_vizinho}")
+                    self.vizinhos.remove(f'{endereco_vizinho}:{porta_vizinho}')
                 else:
                     print(f'    Não foi possível enviar a mensagem {mensagem}')
             except:
@@ -177,13 +177,8 @@ class Peer:
                     vizinho_socket.close()
     
     def handle_bye(self, endereco, porta):
-        print('printando aqui o que recebo na handle_bye')
-        print(f'Removendo vizinho da tabela {endereco}:{porta}')
-        self.vizinhos.remove(f"{endereco}:{porta}")
-
-        # Após remover todos os vizinhos, encerra o programa
-        if not self.vizinhos:
-            self.running = False
+        print(f'    Removendo vizinho da tabela {endereco}:{porta}')
+        self.vizinhos.remove(f'{endereco}:{porta}')
 
     def handle_search(self, request, peer_socket):
         from Grafo.buscas import flooding, random_walk, busca_em_profundidade

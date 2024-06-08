@@ -12,15 +12,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from peer import Peer
 
 class Buscas:
-    def __init__(self, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
-        self.peer = Peer(endereco, porta)  # Instanciando a classe Peer
-        
-        if arquivo_vizinhos:
-            self.peer.load_neighbors(arquivo_vizinhos)
-        if arquivo_chave_valor:
-            self.peer.load_key_value_pairs(arquivo_chave_valor)
-
-        
+    def __init__(self):
+        print("nao sei se tiro isso aqui")
         # Coloquei no init do peer self.mensagens_vistas = set()  # Para armazenar mensagens já vistas
 
     def flooding(self, mensagem):
