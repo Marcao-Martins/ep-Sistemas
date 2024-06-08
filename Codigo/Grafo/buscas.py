@@ -12,15 +12,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from peer import Peer
 
 class Buscas:
-    def __init__(self, grafo, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
-        self.grafo = grafo
-        
+    def __init__(self, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.peer = Peer(endereco, porta)  # Instanciando a classe Peer
         
         if arquivo_vizinhos:
             self.peer.load_neighbors(arquivo_vizinhos)
         if arquivo_chave_valor:
             self.peer.load_key_value_pairs(arquivo_chave_valor)
+
         
         # Coloquei no init do peer self.mensagens_vistas = set()  # Para armazenar mensagens já vistas
 
@@ -32,31 +31,41 @@ class Buscas:
         visitados = mensagem.get('visitados', set())
 
         mensagem_id = (origem, seq_no)
-        if mensagem_id in self.mensagens_vistas:
-            print("Flooding: Mensagem repetida!")
+        if mensagem_id in self.peer.mensagens_vistas:
+            print(f"Flooding: Mensagem repetida! ID: {mensagem_id}")
             return "Chave não encontrada"
 
-        self.mensagens_vistas.add(mensagem_id)
-    
-        nodo_origem = self.grafo.obtem_nodo(*origem.split(':'))
-        resultado = nodo_origem.busca_local(chave)
+        print(f"Flooding: Processando mensagem {mensagem_id} com TTL {ttl}")
+
+        self.peer.mensagens_vistas.add(mensagem_id)
+        
+        resultado = self.peer.chave_valor.get(chave)
         if resultado:
+            print(f"Flooding: Chave encontrada localmente: {resultado}")
             return f"Chave encontrada: {resultado}",
 
         if ttl > 0:
             visitados.add(origem)
-            for vizinho in nodo_origem.vizinhos:
-                if vizinho not in visitados:
+            for vizinho in self.peer.vizinhos:
+                vizinho_endereco, vizinho_porta = vizinho.split(':')
+                vizinho_identificador = f"{vizinho_endereco}:{vizinho_porta}"
+                if vizinho_identificador not in visitados:
+                    print(f"Flooding: Encaminhando mensagem para {vizinho_identificador}")
                     nova_mensagem = mensagem.copy()
-                    nova_mensagem['origem'] = vizinho
+                    nova_mensagem['origem'] = vizinho_identificador
                     nova_mensagem['ttl'] = ttl - 1
                     nova_mensagem['seq_no'] = seq_no + 1
                     nova_mensagem['visitados'] = visitados
-                    self.peer.transmite_mensagem(nova_mensagem, exclude_socket=None)
+                    # Conecta ao vizinho antes de transmitir a mensagem
+                    vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
+                    if vizinho_socket:
+                        self.peer.envia_mensagem(vizinho_socket, nova_mensagem)
+                        vizinho_socket.close()
                     resultado = self.flooding(nova_mensagem)
                     if resultado:
                         return resultado
 
+        print("Flooding: Chave não encontrada")
         return "Chave não encontrada"
 
     def random_walk(self, mensagem):
@@ -66,25 +75,24 @@ class Buscas:
         seq_no = mensagem['seq_no']
         ultimo_vizinho = mensagem.get('ultimo_vizinho', None)
 
-        nodo_origem = self.grafo.obtem_nodo(*origem.split(':'))
-        resultado = nodo_origem.busca_local(chave)
+        resultado = self.peer.chave_valor.get(chave)
         if resultado:
             return f"Chave encontrada: {resultado}"
 
-        if ttl <= 0 or not nodo_origem.vizinhos:
+        if ttl <= 0 or not self.peer.vizinhos:
             return "Chave não encontrada"
 
-        vizinhos_possiveis = list(nodo_origem.vizinhos - {ultimo_vizinho}) if ultimo_vizinho else list(nodo_origem.vizinhos)
+        vizinhos_possiveis = [v for v in self.peer.vizinhos if v.getpeername() != ultimo_vizinho] if ultimo_vizinho else self.peer.vizinhos
         if not vizinhos_possiveis:
-            vizinhos_possiveis = list(nodo_origem.vizinhos)
+            vizinhos_possiveis = self.peer.vizinhos
 
         vizinho_escolhido = random.choice(vizinhos_possiveis)
         nova_mensagem = mensagem.copy()
-        nova_mensagem['origem'] = vizinho_escolhido
+        nova_mensagem['origem'] = f"{vizinho_escolhido.getpeername()[0]}:{vizinho_escolhido.getpeername()[1]}"
         nova_mensagem['ttl'] = ttl - 1
         nova_mensagem['seq_no'] = seq_no + 1
         nova_mensagem['ultimo_vizinho'] = origem
-        self.peer.envia_mensagem(self.peer.conecta_peer(*vizinho_escolhido.split(':')), nova_mensagem)
+        self.peer.envia_mensagem(vizinho_escolhido, nova_mensagem)
         return self.random_walk(nova_mensagem)
 
     def busca_em_profundidade(self, mensagem):
@@ -94,21 +102,22 @@ class Buscas:
         seq_no = mensagem['seq_no']
         visitados = mensagem.get('visitados', set())
 
-        nodo_origem = self.grafo.obtem_nodo(*origem.split(':'))
-        resultado = nodo_origem.busca_local(chave)
+        resultado = self.peer.chave_valor.get(chave)
         if resultado:
             return f"Chave encontrada: {resultado}"
 
         if ttl > 0:
             visitados.add(origem)
-            for vizinho in nodo_origem.vizinhos:
-                if vizinho not in visitados:
+            for vizinho in self.peer.vizinhos:
+                vizinho_endereco, vizinho_porta = vizinho.getpeername()
+                vizinho_identificador = f"{vizinho_endereco}:{vizinho_porta}"
+                if vizinho_identificador not in visitados:
                     nova_mensagem = mensagem.copy()
-                    nova_mensagem['origem'] = vizinho
+                    nova_mensagem['origem'] = vizinho_identificador
                     nova_mensagem['ttl'] = ttl - 1
                     nova_mensagem['seq_no'] = seq_no + 1
                     nova_mensagem['visitados'] = visitados
-                    self.peer.envia_mensagem(self.peer.conecta_peer(*vizinho.split(':')), nova_mensagem)
+                    self.peer.envia_mensagem(vizinho, nova_mensagem)
                     resultado = self.busca_em_profundidade(nova_mensagem)
                     if resultado:
                         return resultado
@@ -128,7 +137,7 @@ class Buscas:
         self.peer.adiciona_vizinho(endereco, porta)
 
     def load_neighbors(self, filename):
-        self.peer.load_neighbors(self.peer ,filename)
+        self.peer.load_neighbors(filename)
 
     def armazena_valor(self, chave, valor):
         self.peer.armazena_valor(chave, valor)

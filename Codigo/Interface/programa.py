@@ -10,8 +10,7 @@ from Grafo.buscas import Buscas
 class Interface:
     def __init__(self, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.running = True
-        self.grafo = Grafo()  # Inicializar o grafo
-        self.buscas = Buscas(self.grafo, endereco, porta, arquivo_vizinhos, arquivo_chave_valor)
+        self.buscas = Buscas(endereco, porta, arquivo_vizinhos, arquivo_chave_valor)
         
     def run(self):
         while self.running:

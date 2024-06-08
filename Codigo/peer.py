@@ -5,11 +5,12 @@ import time
 from mensagem import Message
 
 class Peer:
-    def __init__(self, endereco, porta):
+    def __init__(self, endereco, porta, ttl_padrao = 100):
         self.endereco = endereco
         self.porta = porta
         self.vizinhos = []
         self.chave_valor = {}  # Armazenamento de pares chave-valor
+        self.ttl_padrao = ttl_padrao
         self.mensagens_vistas = set() # Para armazenar mensagens já vistas
         self.seq_no = 1
 
@@ -151,7 +152,7 @@ class Peer:
         self.seq_no += 1
 
 
-    def handle_search(self, request, peer_socket, mensagem):
+    def handle_search(self, request, peer_socket):
         from Grafo.buscas import flooding, random_walk, busca_em_profundidade
         print("Começando processo de busca")
         chave = request.get('chave')
@@ -159,6 +160,15 @@ class Peer:
         origem = request.get('origem')
         ttl = request.get('ttl')
         seq_no = request.get('seq_no')
+
+        # Verificar se a mensagem já foi vista
+        mensagem_id = (origem, seq_no)
+        if mensagem_id in self.mensagens_vistas:
+            print("Mensagem repetida!")
+            return "Chave não encontrada"
+
+        self.mensagens_vistas.add(mensagem_id)
+
 
         if metodo == 'FLOODING':
             mensagem = {
