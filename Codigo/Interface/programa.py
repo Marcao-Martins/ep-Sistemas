@@ -31,7 +31,7 @@ class Interface:
 
     def exit_program(self):
         print("Saindo...")
-        # tem que enviar um 'BYE' aqui
+        self.buscas.peer.remove_vizinho(endereco, porta)
         self.running = False
         
     def handle_choice(self, choice):

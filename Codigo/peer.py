@@ -78,6 +78,8 @@ class Peer:
                 self.handle_hello(endereco_vizinho, porta_vizinho, 'ADC VIZINHO')
             elif operacao == "SEARCH":
                 self.handle_search(peer_socket, mensagem)
+            elif operacao == "BYE":
+                self.handle_bye(endereco_vizinho, porta_vizinho)
         
         except Exception as e:
             print(f'Erro ao lidar com o peer {endereco_vizinho}:{porta_vizinho}: {e}')
@@ -113,7 +115,7 @@ class Peer:
 
             vizinho_socket = self.conecta_peer(endereco, porta)
             resposta =  self.envia_mensagem(vizinho_socket, mensagem)
-            if resposta:
+            if resposta == "HELLO_OK":
                 print(f'    Envio feito com sucesso: {mensagem}')
                 self.vizinhos.append(f"{endereco}:{porta}")
             else:
@@ -151,6 +153,37 @@ class Peer:
 
         self.seq_no += 1
 
+    def remove_vizinho(self, endereco, porta):
+        mensagem = f"{self.endereco}:{self.porta} {self.seq_no} 1 BYE" # Constrói mensagens que vai enviar para vizinhos
+
+        for vizinho_str in self.vizinhos:
+            try:    
+                endereco_vizinho, porta_vizinho = vizinho_str.split(':')
+                porta_vizinho = int(porta_vizinho)
+                print(f"remove_vizinho(), {endereco_vizinho}, {porta_vizinho}")
+                print(f'Encaminhando mensagem "{mensagem}" para {endereco_vizinho}:{porta_vizinho}')
+                vizinho_socket = self.conecta_peer(endereco_vizinho, porta_vizinho)
+                resposta =  self.envia_mensagem(vizinho_socket, mensagem)
+                if resposta == "BYE_OK":
+                    print(f'    Envio feito com sucesso: {mensagem}')
+                    print(self.vizinhos)
+                    self.vizinhos.remove(f"{endereco_vizinho}:{porta_vizinho}")
+                else:
+                    print(f'    Não foi possível enviar a mensagem {mensagem}')
+            except:
+                resposta =  False
+            finally:
+                if vizinho_socket:
+                    vizinho_socket.close()
+    
+    def handle_bye(self, endereco, porta):
+        print('printando aqui o que recebo na handle_bye')
+        print(f'Removendo vizinho da tabela {endereco}:{porta}')
+        self.vizinhos.remove(f"{endereco}:{porta}")
+
+        # Após remover todos os vizinhos, encerra o programa
+        if not self.vizinhos:
+            self.running = False
 
     def handle_search(self, request, peer_socket):
         from Grafo.buscas import flooding, random_walk, busca_em_profundidade
