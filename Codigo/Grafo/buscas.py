@@ -27,7 +27,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Flooding: Chave encontrada localmente: {resultado}")
-            return resultado
+            return f"Chave Encontrada: {resultado}"
 
         if ttl > 0:
             visitados.add(self.peer.endereco + ':' + str(self.peer.porta))
@@ -47,12 +47,11 @@ class Buscas:
                     if vizinho_socket:
                         resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
                         vizinho_socket.close()
-                        if resposta:
+                        if resposta and resposta.startswith("Chave Encontrada:"):
                             return resposta
 
         print("Flooding: Chave não encontrada")
         return "Chave não encontrada"
-
 
             
     def random_walk(self, mensagem):
@@ -112,8 +111,8 @@ class Buscas:
 
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
-            print(f"DFS: Chave encontrada localmente: {resultado}")
-            return resultado
+            print(f"BP: Chave encontrada localmente: {resultado}")
+            return f"Chave Encontrada: {resultado}"
 
         if ttl > 0:
             visitados.add(f"{self.peer.endereco}:{self.peer.porta}")
@@ -132,10 +131,10 @@ class Buscas:
                     if vizinho_socket:
                         resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
                         vizinho_socket.close()
-                        if resposta:
+                    if resposta and resposta.startswith("Chave Encontrada:"):
                             return resposta
 
-        print("DFS: Chave não encontrada")
+        print("BP: Chave não encontrada")
         return "Chave não encontrada"
 
 

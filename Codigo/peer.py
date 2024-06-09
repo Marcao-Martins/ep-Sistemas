@@ -236,7 +236,6 @@ class Peer:
         seq_no = request.get('seq_no')
         hop = request.get('hop')
 
-
         # Verificar se a mensagem já foi vista
         mensagem_id = (origem, seq_no)
         if mensagem_id in self.mensagens_vistas:
@@ -288,14 +287,13 @@ class Peer:
         else:
             resultado = "Método de busca desconhecido"
 
-        resposta_json = json.dumps({"resultado": resultado})
+        resposta_json = json.dumps(resultado)
         print(f"handle_search: Enviando resposta: {resposta_json}")
         peer_socket.send(resposta_json.encode())
 
         print(f"handle_search: Fim da função")
         self.limpa_mensagens_vistas()  # Limpa a lista de mensagens vistas após cada busca
-
-            
+                
     def envia_mensagem(self, peer_socket, mensagem):
         """
             Função feita para enviar mensagens e receber uma resposta
