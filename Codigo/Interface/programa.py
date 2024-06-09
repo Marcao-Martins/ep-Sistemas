@@ -101,7 +101,9 @@ class Interface:
             'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
             'metodo': 'RW',
+            'ultimo_vizinho': None,
             'hop' : 1
+
 
         }
         resultado = self.buscas.random_walk(mensagem)
@@ -115,18 +117,19 @@ class Interface:
             'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
             'metodo': 'BP',
-            'visitados': set(),
+            'ultimo_vizinho': None,
             'hop' : 1
-            
         }
         resultado = self.buscas.busca_em_profundidade(mensagem)
         print(resultado)
 
     def show_statistics(self):
-        print("Estatísticas: Em construção")
-        
-        
-        
+        print(f'Total de mensagens de flooding vistas: {self.peer.contadores_busca['FL']}')
+        print(f'Total de mensagens de random walk vistas: {self.peer.contadores_busca['RW']}')
+        print(f'Total de mensagens de busca em profundidade vistas: {self.peer.contadores_busca['BP']}')
+        print("Media de saltos ate encontrar destino por flooding: ")
+        print("Media de saltos ate encontrar destino por random walk: ")
+        print("Media de saltos ate encontrar destino por busca em profundidade: ")
 
     def change_ttl(self):
         novo_ttl = int(input("Digite o novo valor de TTL: ").strip())

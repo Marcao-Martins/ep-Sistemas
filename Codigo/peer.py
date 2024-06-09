@@ -8,24 +8,30 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class Peer:
-    def __init__(self, endereco, porta, ttl_padrao = 100):
+    def __init__(self, endereco, porta, ttl_padrao=100):
         self.endereco = endereco
         self.porta = porta
         self.vizinhos = []
         self.chave_valor = {}  # Armazenamento de pares chave-valor
-        
         self.ttl_padrao = ttl_padrao
-        self.mensagens_vistas = set() # Para armazenar mensagens já vistas
+        self.mensagens_vistas = set()  # Para armazenar mensagens já vistas
         self.seq_no = 1
 
+        # Estruturas para estatísticas
+        self.contadores_busca = {'FL': 0, 'RW': 0, 'BP': 0}
+
+        # Estruturas para busca em profundidade
+        self.noh_mae = {}
+        self.vizinho_ativo = {}
+        self.vizinhos_candidatos = {}
 
         # Inicializa o servidor em uma thread separada
         self.server_thread = threading.Thread(target=self.inicia_servidor)
         self.server_thread.daemon = True  # Permite que o programa termine mesmo que o servidor esteja rodando
         self.server_thread.start()
 
-        time.sleep(1) # Aguarda um breve intervalo para garantir que o servidor esteja iniciado
-
+        time.sleep(1)  # Aguarda um breve intervalo para garantir que o servidor esteja iniciado
+        
     def inicia_servidor(self):
         servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         servidor.bind((self.endereco, self.porta))
@@ -208,7 +214,6 @@ class Peer:
             mensagem['visitados'] = list(mensagem.get('visitados', []))
             mensagem_json = json.dumps(mensagem)
             peer_socket.send(mensagem_json.encode())
-            print(f'envia_mensagem_busca: Mensagem enviada: {mensagem_json}')
             resposta = peer_socket.recv(4096).decode()
             if resposta:
                 resposta_dict = json.loads(resposta)
@@ -228,7 +233,6 @@ class Peer:
         from Grafo.buscas import Buscas
         buscas = Buscas(self)
 
-        print("Começando processo de busca")
         chave = request.get('chave')
         metodo = request.get('metodo')
         origem = request.get('origem')
@@ -246,8 +250,9 @@ class Peer:
 
         self.mensagens_vistas.add(mensagem_id)
 
-        print(f"handle_search: Mensagem recebida para busca - Chave: {chave}, Método: {metodo}, Origem: {origem}, TTL: {ttl}, Seq_no: {seq_no}")
-        print(f"handle_search: Tabela chave-valor local: {self.chave_valor}")
+        # Incrementa o contador de mensagens de busca
+        if metodo in self.contadores_busca:
+            self.contadores_busca[metodo] += 1
 
         if metodo == 'FL':
             mensagem = {
@@ -273,7 +278,7 @@ class Peer:
             }
             resultado = buscas.random_walk(mensagem)
         elif metodo == 'BP':
-            visitados = request.get('visitados', [])
+            ultimo_vizinho = request.get('ultimo_vizinho')
             mensagem = {
                 'chave': chave,
                 'metodo': metodo,
@@ -281,7 +286,8 @@ class Peer:
                 'ttl': ttl,
                 'seq_no': seq_no,
                 'hop': hop + 1,
-                'visitados': visitados
+                'ultimo_vizinho': ultimo_vizinho,
+
             }
             resultado = buscas.busca_em_profundidade(mensagem)
         else:

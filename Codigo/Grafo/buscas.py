@@ -107,36 +107,69 @@ class Buscas:
         ttl = mensagem['ttl']
         seq_no = mensagem['seq_no']
         hop = mensagem['hop']
-        visitados = set(mensagem.get('visitados', []))
+        ultimo_vizinho = mensagem.get('ultimo_vizinho', None)  # Ajuste aqui
+
+        mensagem_id = (origem, seq_no)
+
+        # Inicialização de estruturas para cada mensagem
+        if mensagem_id not in self.peer.noh_mae:
+            self.peer.noh_mae[mensagem_id] = f"{self.peer.endereco}:{self.peer.porta}"
+            self.peer.vizinho_ativo[mensagem_id] = None
+            self.peer.vizinhos_candidatos[mensagem_id] = list(self.peer.vizinhos)
 
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"BP: Chave encontrada localmente: {resultado}")
             return f"Chave Encontrada: {resultado}"
 
-        if ttl > 0:
-            visitados.add(f"{self.peer.endereco}:{self.peer.porta}")
-            for vizinho in self.peer.vizinhos:
-                vizinho_endereco, vizinho_porta = vizinho.split(':')
-                vizinho_identificador = f"{vizinho_endereco}:{vizinho_porta}"
-                if vizinho_identificador not in visitados:
-                    nova_mensagem = mensagem.copy()
-                    nova_mensagem['origem'] = origem
-                    nova_mensagem['ttl'] = ttl - 1
-                    nova_mensagem['seq_no'] = seq_no + 1
-                    nova_mensagem['hop'] = hop + 1
-                    nova_mensagem['visitados'] = list(visitados)
-                    
-                    vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
-                    if vizinho_socket:
-                        resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
-                        vizinho_socket.close()
-                    if resposta and resposta.startswith("Chave Encontrada:"):
-                            return resposta
+        if ttl == 0:
+            print("BP: TTL igual a zero, descartando mensagem")
+            return "Chave não encontrada"
+
+        # Remover último vizinho dos vizinhos candidatos
+        if ultimo_vizinho and ultimo_vizinho in self.peer.vizinhos_candidatos[mensagem_id]:
+            self.peer.vizinhos_candidatos[mensagem_id].remove(ultimo_vizinho)
+
+        # Condições de parada
+        if self.peer.noh_mae[mensagem_id] == f"{self.peer.endereco}:{self.peer.porta}" and \
+                self.peer.vizinho_ativo[mensagem_id] == ultimo_vizinho and \
+                not self.peer.vizinhos_candidatos[mensagem_id]:
+            print(f"BP: Nao foi possivel localizar a chave {chave}")
+            return "Chave não encontrada"
+
+        if self.peer.vizinho_ativo[mensagem_id] and self.peer.vizinho_ativo[mensagem_id] != ultimo_vizinho:
+            print("BP: ciclo detectado, devolvendo a mensagem...")
+            proximo = ultimo_vizinho
+        elif not self.peer.vizinhos_candidatos[mensagem_id]:
+            print("BP: nenhum vizinho encontrou a chave, retrocedendo...")
+            proximo = self.peer.noh_mae[mensagem_id]
+        else:
+            proximo = random.choice(self.peer.vizinhos_candidatos[mensagem_id])
+            self.peer.vizinho_ativo[mensagem_id] = proximo
+            self.peer.vizinhos_candidatos[mensagem_id].remove(proximo)
+
+        if not proximo:
+            print("BP: Não foi possível determinar o próximo vizinho, encerrando busca.")
+            return "Chave não encontrada"
+
+        nova_mensagem = mensagem.copy()
+        nova_mensagem['origem'] = origem
+        nova_mensagem['ttl'] = ttl - 1
+        nova_mensagem['seq_no'] = seq_no + 1
+        nova_mensagem['hop'] = hop + 1
+        nova_mensagem['ultimo_vizinho'] = f"{self.peer.endereco}:{self.peer.porta}"
+
+        vizinho_endereco, vizinho_porta = proximo.split(':')
+        print(f"BP: Enviando mensagem para {vizinho_endereco}:{vizinho_porta}")
+        vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
+        if vizinho_socket:
+            resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
+            vizinho_socket.close()
+            if resposta and resposta.startswith("Chave Encontrada:"):
+                return resposta
 
         print("BP: Chave não encontrada")
         return "Chave não encontrada"
-
 
     def inicia_servidor(self):
         self.peer.inicia_servidor()
