@@ -107,7 +107,7 @@ class Buscas:
         ttl = mensagem['ttl']
         seq_no = mensagem['seq_no']
         hop = mensagem['hop']
-        ultimo_vizinho = mensagem.get('ultimo_vizinho', None)  # Ajuste aqui
+        ultimo_vizinho = mensagem.get('ultimo_vizinho', None)
 
         mensagem_id = (origem, seq_no)
 
@@ -116,6 +116,7 @@ class Buscas:
             self.peer.noh_mae[mensagem_id] = f"{self.peer.endereco}:{self.peer.porta}"
             self.peer.vizinho_ativo[mensagem_id] = None
             self.peer.vizinhos_candidatos[mensagem_id] = list(self.peer.vizinhos)
+            print(f"BP: Iniciando busca - Nó mãe: {self.peer.noh_mae[mensagem_id]}, Candidatos: {self.peer.vizinhos_candidatos[mensagem_id]}")
 
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
@@ -129,24 +130,31 @@ class Buscas:
         # Remover último vizinho dos vizinhos candidatos
         if ultimo_vizinho and ultimo_vizinho in self.peer.vizinhos_candidatos[mensagem_id]:
             self.peer.vizinhos_candidatos[mensagem_id].remove(ultimo_vizinho)
+            print(f"BP: Removendo último vizinho {ultimo_vizinho} dos candidatos")
 
-        # Condições de parada
+        # Condição de Parada 1: Se o nó mãe é o próprio endereço, vizinho ativo é último vizinho e vizinhos candidatos está vazio
         if self.peer.noh_mae[mensagem_id] == f"{self.peer.endereco}:{self.peer.porta}" and \
                 self.peer.vizinho_ativo[mensagem_id] == ultimo_vizinho and \
                 not self.peer.vizinhos_candidatos[mensagem_id]:
             print(f"BP: Nao foi possivel localizar a chave {chave}")
             return "Chave não encontrada"
 
+        # Condição de Parada 2: Se vizinho ativo está definido e não é último vizinho
         if self.peer.vizinho_ativo[mensagem_id] and self.peer.vizinho_ativo[mensagem_id] != ultimo_vizinho:
             print("BP: ciclo detectado, devolvendo a mensagem...")
             proximo = ultimo_vizinho
+
+        # Condição de Parada 3: Se vizinhos candidatos está vazio
         elif not self.peer.vizinhos_candidatos[mensagem_id]:
             print("BP: nenhum vizinho encontrou a chave, retrocedendo...")
             proximo = self.peer.noh_mae[mensagem_id]
+
+        # Continuar busca
         else:
             proximo = random.choice(self.peer.vizinhos_candidatos[mensagem_id])
             self.peer.vizinho_ativo[mensagem_id] = proximo
             self.peer.vizinhos_candidatos[mensagem_id].remove(proximo)
+            print(f"BP: Próximo vizinho escolhido: {proximo}, Candidatos restantes: {self.peer.vizinhos_candidatos[mensagem_id]}")
 
         if not proximo:
             print("BP: Não foi possível determinar o próximo vizinho, encerrando busca.")
@@ -170,6 +178,7 @@ class Buscas:
 
         print("BP: Chave não encontrada")
         return "Chave não encontrada"
+
 
     def inicia_servidor(self):
         self.peer.inicia_servidor()
