@@ -88,7 +88,7 @@ class Peer:
 
             if operacao == "HELLO":
                 self.handle_hello(endereco_vizinho, porta_vizinho, 'ADC VIZINHO')
-            elif (operacao == "FLOODING" or operacao == "RANDOM_WALK" or operacao == "DFS") and mensagem_json:
+            elif (operacao == "FL" or operacao == "RW" or operacao == "BP") and mensagem_json:
                 self.handle_search(mensagem_json, peer_socket)
             elif operacao == "BYE":
                 self.handle_bye(endereco_vizinho, porta_vizinho)
@@ -234,6 +234,8 @@ class Peer:
         origem = request.get('origem')
         ttl = request.get('ttl')
         seq_no = request.get('seq_no')
+        hop = request.get('hop')
+
 
         # Verificar se a mensagem já foi vista
         mensagem_id = (origem, seq_no)
@@ -248,17 +250,18 @@ class Peer:
         print(f"handle_search: Mensagem recebida para busca - Chave: {chave}, Método: {metodo}, Origem: {origem}, TTL: {ttl}, Seq_no: {seq_no}")
         print(f"handle_search: Tabela chave-valor local: {self.chave_valor}")
 
-        if metodo == 'FLOODING':
+        if metodo == 'FL':
             mensagem = {
                 'chave': chave,
                 'metodo': metodo,
                 'origem': origem,
                 'ttl': ttl,
                 'seq_no': seq_no,
+                'hop': hop + 1,
                 'visitados': request.get('visitados', [])
             }
             resultado = buscas.flooding(mensagem)
-        elif metodo == 'RANDOM_WALK':
+        elif metodo == 'RW':
             ultimo_vizinho = request.get('ultimo_vizinho')
             mensagem = {
                 'chave': chave,
@@ -266,10 +269,11 @@ class Peer:
                 'origem': origem,
                 'ttl': ttl,
                 'seq_no': seq_no,
+                'hop': hop + 1,
                 'ultimo_vizinho': ultimo_vizinho
             }
             resultado = buscas.random_walk(mensagem)
-        elif metodo == 'DFS':
+        elif metodo == 'BP':
             visitados = request.get('visitados', [])
             mensagem = {
                 'chave': chave,
@@ -277,6 +281,7 @@ class Peer:
                 'origem': origem,
                 'ttl': ttl,
                 'seq_no': seq_no,
+                'hop': hop + 1,
                 'visitados': visitados
             }
             resultado = buscas.busca_em_profundidade(mensagem)

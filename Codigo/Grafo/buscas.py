@@ -20,6 +20,7 @@ class Buscas:
         origem = mensagem['origem']
         ttl = mensagem['ttl']
         seq_no = mensagem['seq_no']
+        hop = mensagem['hop']
         visitados = set(mensagem.get('visitados', []))
 
         print(f"Flooding: Tabela chave-valor local: {self.peer.chave_valor}")
@@ -39,6 +40,7 @@ class Buscas:
                     nova_mensagem['origem'] = origem  # Mantém a origem original
                     nova_mensagem['ttl'] = ttl - 1
                     nova_mensagem['seq_no'] = seq_no + 1
+                    nova_mensagem['hop'] = hop + 1
                     nova_mensagem['visitados'] = list(visitados)
                     # Conecta ao vizinho antes de transmitir a mensagem
                     vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
@@ -58,6 +60,7 @@ class Buscas:
         origem = mensagem['origem']
         ttl = mensagem['ttl']
         seq_no = mensagem['seq_no']
+        hop = mensagem['hop']
         ultimo_vizinho = mensagem.get('ultimo_vizinho', None)
 
         resultado = self.peer.chave_valor.get(chave)
@@ -81,6 +84,7 @@ class Buscas:
         nova_mensagem['origem'] = origem  # Mantém a origem original
         nova_mensagem['ttl'] = ttl - 1
         nova_mensagem['seq_no'] = seq_no + 1
+        nova_mensagem['hop'] = hop + 1
         nova_mensagem['ultimo_vizinho'] = self.peer.endereco + ':' + str(self.peer.porta)
 
         # Conecta ao vizinho antes de transmitir a mensagem
@@ -103,6 +107,7 @@ class Buscas:
         origem = mensagem['origem']
         ttl = mensagem['ttl']
         seq_no = mensagem['seq_no']
+        hop = mensagem['hop']
         visitados = set(mensagem.get('visitados', []))
 
         resultado = self.peer.chave_valor.get(chave)
@@ -120,6 +125,7 @@ class Buscas:
                     nova_mensagem['origem'] = origem
                     nova_mensagem['ttl'] = ttl - 1
                     nova_mensagem['seq_no'] = seq_no + 1
+                    nova_mensagem['hop'] = hop + 1
                     nova_mensagem['visitados'] = list(visitados)
                     
                     vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
