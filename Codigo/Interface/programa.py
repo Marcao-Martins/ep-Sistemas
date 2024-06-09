@@ -12,8 +12,8 @@ from peer import Peer
 class Interface:
     def __init__(self, endereco, porta, arquivo_vizinhos=None, arquivo_chave_valor=None):
         self.running = True
-        self.buscas = Buscas()
         self.peer = Peer(endereco, porta) # Instanciando a classe Peer
+        self.buscas = Buscas(self.peer)
         
         if arquivo_vizinhos:
             self.peer.load_neighbors(arquivo_vizinhos)
