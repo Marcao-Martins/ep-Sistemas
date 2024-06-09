@@ -86,8 +86,9 @@ class Interface:
             'origem': f"{self.peer.endereco}:{self.peer.porta}",
             'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
-            'metodo': 'FLOODING',
-            'visitados': set()
+            'metodo': 'FL',
+            'visitados': set(),
+            'hop' : 1
         }
         resultado = self.buscas.flooding(mensagem)
         print(resultado)
@@ -99,7 +100,9 @@ class Interface:
             'origem': f"{self.peer.endereco}:{self.peer.porta}",
             'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
-            'metodo': 'RANDOM_WALK'
+            'metodo': 'RW',
+            'hop' : 1
+
         }
         resultado = self.buscas.random_walk(mensagem)
         print(resultado)
@@ -111,14 +114,19 @@ class Interface:
             'origem': f"{self.peer.endereco}:{self.peer.porta}",
             'ttl': self.peer.ttl_padrao,
             'seq_no': 1,
-            'metodo': 'DFS',
-            'visitados': set()
+            'metodo': 'BP',
+            'visitados': set(),
+            'hop' : 1
+            
         }
         resultado = self.buscas.busca_em_profundidade(mensagem)
         print(resultado)
 
     def show_statistics(self):
         print("Estatísticas: Em construção")
+        
+        
+        
 
     def change_ttl(self):
         novo_ttl = int(input("Digite o novo valor de TTL: ").strip())
