@@ -1,8 +1,11 @@
 import threading
-import pickle
+import json
 import socket
 import time
 from mensagem import Message
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 class Peer:
     def __init__(self, endereco, porta, ttl_padrao = 100):
@@ -13,6 +16,7 @@ class Peer:
         self.ttl_padrao = ttl_padrao
         self.mensagens_vistas = set() # Para armazenar mensagens já vistas
         self.seq_no = 1
+
 
         # Inicializa o servidor em uma thread separada
         self.server_thread = threading.Thread(target=self.inicia_servidor)
@@ -63,28 +67,35 @@ class Peer:
         operacao = partes[3]
         return end_peer, int(porta_peer), operacao
 
+
     def handle_peer(self, peer_socket):
         try:
             mensagem = peer_socket.recv(1024).decode()  # Lê a mensagem enviada pelo peer
             print(f'Mensagem recebida pelo servidor: "{mensagem}"')
-            endereco_vizinho, porta_vizinho, operacao = self.extrai_informacoes_da_mensagem(mensagem)
-            
-            # Envia resposta de OK
-            peer_socket.send(f'{operacao}_OK'.encode())
-            # peer_socket.close()
+
+            # Verifica se a mensagem é um JSON
+            try:
+                mensagem_json = json.loads(mensagem)
+                operacao = mensagem_json.get('metodo', 'UNKNOWN')
+            except json.JSONDecodeError:
+                mensagem_json = None
+                endereco_vizinho, porta_vizinho, operacao = self.extrai_informacoes_da_mensagem(mensagem)
+
+            # Envia resposta de OK para HELLO e BYE
+            if operacao == "HELLO" or operacao == "BYE":
+                peer_socket.send(f'{operacao}_OK'.encode())
 
             if operacao == "HELLO":
                 self.handle_hello(endereco_vizinho, porta_vizinho, 'ADC VIZINHO')
-            elif operacao == "SEARCH":
-                self.handle_search(peer_socket, mensagem)
+            elif operacao == "FLOODING" and mensagem_json:
+                self.handle_search(mensagem_json, peer_socket)
             elif operacao == "BYE":
                 self.handle_bye(endereco_vizinho, porta_vizinho)
         
         except Exception as e:
-            print(f'Erro ao lidar com o peer {endereco_vizinho}:{porta_vizinho}: {e}')
+            print(f'Erro ao lidar com a mensagem recebida: {e}')
         finally:
             peer_socket.close()
-            
 
     def conecta_peer(self, endereco, porta):
         try:
@@ -179,9 +190,60 @@ class Peer:
     def handle_bye(self, endereco, porta):
         print(f'    Removendo vizinho da tabela {endereco}:{porta}')
         self.vizinhos.remove(f'{endereco}:{porta}')
+        
+        
+    def envia_mensagem_busca(self, peer_socket, mensagem):
+        """
+        Função para enviar mensagens de busca e receber uma resposta
+
+        args:
+            peer_socket: peer que está recebendo a mensagem
+            mensagem (dict): mensagem a ser enviada
+        return:
+            resposta: resposta recebida a partir da função recv
+        """
+        try:
+            # Converta qualquer set na mensagem para lista
+            mensagem['visitados'] = list(mensagem.get('visitados', []))
+            mensagem_json = json.dumps(mensagem)
+            peer_socket.send(mensagem_json.encode())
+            print(f'envia_mensagem_busca: Mensagem enviada: {mensagem_json}')
+            resposta = peer_socket.recv(4096).decode()
+            if resposta:
+                resposta_dict = json.loads(resposta)
+                print(f'envia_mensagem_busca: Resposta recebida: {resposta_dict}')
+                return resposta_dict
+            else:
+                print("envia_mensagem_busca: Resposta vazia recebida")
+                return None
+        except Exception as e:
+            print(f"Erro ao enviar mensagem de busca: {e}")
+            return None
+
+        
+    def handle_search_mensagem(self, peer_socket):
+
+        """
+        Função para receber mensagens de busca e lidar com elas
+
+        args:
+            peer_socket: peer que está recebendo a mensagem
+        """
+        try:
+            mensagem = peer_socket.recv(4096).decode()
+            mensagem_dict = json.loads(mensagem)  # Convertendo a string de volta para um dicionário
+            print(f"Mensagem de busca recebida: {mensagem_dict}")
+            self.handle_search(mensagem_dict, peer_socket)
+        except Exception as e:
+            print(f"Erro ao lidar com mensagem de busca: {e}")
+        
 
     def handle_search(self, request, peer_socket):
-        from Grafo.buscas import flooding, random_walk, busca_em_profundidade
+        
+        from Grafo.buscas import Buscas
+        buscas = Buscas(self)
+        
+        
         print("Começando processo de busca")
         chave = request.get('chave')
         metodo = request.get('metodo')
@@ -193,10 +255,14 @@ class Peer:
         mensagem_id = (origem, seq_no)
         if mensagem_id in self.mensagens_vistas:
             print("Mensagem repetida!")
-            return "Chave não encontrada"
+            resposta = {"status": "Mensagem repetida"}
+            peer_socket.send(json.dumps(resposta).encode())
+            return
 
         self.mensagens_vistas.add(mensagem_id)
-
+        
+        print(f"handle_search: Mensagem recebida para busca - Chave: {chave}, Método: {metodo}, Origem: {origem}, TTL: {ttl}, Seq_no: {seq_no}")
+        print(f"handle_search: Tabela chave-valor local: {self.chave_valor}")
 
         if metodo == 'FLOODING':
             mensagem = {
@@ -204,9 +270,13 @@ class Peer:
                 'metodo': metodo,
                 'origem': origem,
                 'ttl': ttl,
-                'seq_no': seq_no
+                'seq_no': seq_no,
+                'visitados': request.get('visitados', [])
             }
-            flooding(mensagem, peer_socket)
+            resultado = buscas.flooding(mensagem)
+            resposta_json = json.dumps({"resultado": resultado})
+            print(f"handle_search: Enviando resposta: {resposta_json}")
+            peer_socket.send(resposta_json.encode())
         elif metodo == 'RANDOM_WALK':
             ultimo_vizinho = request.get('ultimo_vizinho')
             mensagem = {
@@ -217,9 +287,12 @@ class Peer:
                 'seq_no': seq_no,
                 'ultimo_vizinho': ultimo_vizinho
             }
-            random_walk(mensagem, peer_socket)
+            resultado = buscas.random_walk(mensagem)
+            resposta_json = json.dumps({"resultado": resultado})
+            print(f"handle_search: Enviando resposta: {resposta_json}")
+            peer_socket.send(resposta_json.encode())
         elif metodo == 'DFS':
-            visitados = request.get('visitados')
+            visitados = request.get('visitados', [])
             mensagem = {
                 'chave': chave,
                 'metodo': metodo,
@@ -228,8 +301,14 @@ class Peer:
                 'seq_no': seq_no,
                 'visitados': visitados
             }
-            busca_em_profundidade(mensagem, peer_socket)
+            resultado = buscas.busca_em_profundidade(mensagem)
+            resposta_json = json.dumps({"resultado": resultado})
+            print(f"handle_search: Enviando resposta: {resposta_json}")
+            peer_socket.send(resposta_json.encode())
 
+        print(f"handle_search: Fim da função")
+
+            
     def envia_mensagem(self, peer_socket, mensagem):
         """
             Função feita para enviar mensagens e receber uma resposta

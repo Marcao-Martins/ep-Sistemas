@@ -1,6 +1,6 @@
 import random
 import random
-import pickle
+import json
 import threading
 import time
 
@@ -14,14 +14,13 @@ from peer import Peer
 class Buscas:
     def __init__(self, peer):
         self.peer = peer
-        # Coloquei no init do peer self.mensagens_vistas = set()  # Para armazenar mensagens já vistas
 
     def flooding(self, mensagem):
         chave = mensagem['chave']
         origem = mensagem['origem']
         ttl = mensagem['ttl']
         seq_no = mensagem['seq_no']
-        visitados = mensagem.get('visitados', set())
+        visitados = set(mensagem.get('visitados', []))
 
         mensagem_id = (origem, seq_no)
         if mensagem_id in self.peer.mensagens_vistas:
@@ -31,36 +30,38 @@ class Buscas:
         print(f"Flooding: Processando mensagem {mensagem_id} com TTL {ttl}")
 
         self.peer.mensagens_vistas.add(mensagem_id)
-        
+
+        print(f"Flooding: Tabela chave-valor local: {self.peer.chave_valor}")
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Flooding: Chave encontrada localmente: {resultado}")
-            return f"Chave encontrada: {resultado}",
+            return f"Chave encontrada: {resultado}"
 
         if ttl > 0:
-            visitados.add(origem)
+            visitados.add(self.peer.endereco + ':' + str(self.peer.porta))
             for vizinho in self.peer.vizinhos:
                 vizinho_endereco, vizinho_porta = vizinho.split(':')
                 vizinho_identificador = f"{vizinho_endereco}:{vizinho_porta}"
                 if vizinho_identificador not in visitados:
                     print(f"Flooding: Encaminhando mensagem para {vizinho_identificador}")
                     nova_mensagem = mensagem.copy()
-                    nova_mensagem['origem'] = vizinho_identificador
+                    nova_mensagem['origem'] = origem  # Mantém a origem original
                     nova_mensagem['ttl'] = ttl - 1
                     nova_mensagem['seq_no'] = seq_no + 1
-                    nova_mensagem['visitados'] = visitados
+                    nova_mensagem['visitados'] = list(visitados)
                     # Conecta ao vizinho antes de transmitir a mensagem
                     vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
                     if vizinho_socket:
-                        self.peer.envia_mensagem(vizinho_socket, nova_mensagem)
+                        resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
                         vizinho_socket.close()
-                    resultado = self.flooding(nova_mensagem)
-                    if resultado:
-                        return resultado
+                        if resposta:
+                            return resposta
 
         print("Flooding: Chave não encontrada")
         return "Chave não encontrada"
 
+
+        
     def random_walk(self, mensagem):
         chave = mensagem['chave']
         origem = mensagem['origem']

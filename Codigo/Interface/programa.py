@@ -79,6 +79,7 @@ class Interface:
             print("Opção inválida. Tente novamente.")
 
     def search_flooding(self):
+    
         chave = input("Digite a chave a ser buscada: ").strip()
         mensagem = {
             'chave': chave,
