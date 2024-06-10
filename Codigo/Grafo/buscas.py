@@ -14,6 +14,7 @@ from peer import Peer
 class Buscas:
     def __init__(self, peer):
         self.peer = peer
+        self.total_hop = 1
 
     def flooding(self, mensagem):
         chave = mensagem['chave']
@@ -45,13 +46,15 @@ class Buscas:
                     # Conecta ao vizinho antes de transmitir a mensagem
                     vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
                     if vizinho_socket:
+                        self.total_hop = self.total_hop + 1
                         resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
                         vizinho_socket.close()
                         if resposta and resposta.startswith("Chave Encontrada:"):
-                            return resposta
+                            return resposta, self.total_hop
 
         print("Flooding: Chave não encontrada")
-        return "Chave não encontrada"
+        print(f"Total hop: {self.total_hop}")
+        return "Chave não encontrada", self.total_hop
 
             
     def random_walk(self, mensagem):
@@ -93,10 +96,10 @@ class Buscas:
             resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
             vizinho_socket.close()
             if resposta:
-                return resposta
+                return resposta,hop
 
         print("Random Walk: Chave não encontrada")
-        return "Chave não encontrada"
+        return "Chave não encontrada",hop
 
 
 
@@ -174,10 +177,10 @@ class Buscas:
             resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
             vizinho_socket.close()
             if resposta and resposta.startswith("Chave Encontrada:"):
-                return resposta
+                return resposta,hop
 
         print("BP: Chave não encontrada")
-        return "Chave não encontrada"
+        return "Chave não encontrada",hop
 
 
     def inicia_servidor(self):

@@ -90,8 +90,9 @@ class Interface:
             'visitados': set(),
             'hop' : 1
         }
-        resultado = self.buscas.flooding(mensagem)
+        resultado,total_hop = self.buscas.flooding(mensagem)
         print(resultado)
+        return total_hop
 
     def search_random_walk(self):
         chave = input("Digite a chave a ser buscada: ").strip()
@@ -106,8 +107,9 @@ class Interface:
 
 
         }
-        resultado = self.buscas.random_walk(mensagem)
+        resultado,total_hop = self.buscas.random_walk(mensagem)
         print(resultado)
+        return total_hop
 
     def search_dfs(self):
         chave = input("Digite a chave a ser buscada: ").strip()
@@ -120,16 +122,51 @@ class Interface:
             'ultimo_vizinho': None,
             'hop' : 1
         }
-        resultado = self.buscas.busca_em_profundidade(mensagem)
+        resultado,total_hop = self.buscas.busca_em_profundidade(mensagem)
         print(resultado)
+        return total_hop
 
     def show_statistics(self):
+        chave = input("Digite a chave a ser buscada: ").strip()
+
+        
         print(f'Total de mensagens de flooding vistas: {self.peer.contadores_busca['FL']}')
         print(f'Total de mensagens de random walk vistas: {self.peer.contadores_busca['RW']}')
         print(f'Total de mensagens de busca em profundidade vistas: {self.peer.contadores_busca['BP']}')
-        print("Media de saltos ate encontrar destino por flooding: ")
-        print("Media de saltos ate encontrar destino por random walk: ")
-        print("Media de saltos ate encontrar destino por busca em profundidade: ")
+        mensagem = {
+            'chave': chave,
+            'origem': f"{self.peer.endereco}:{self.peer.porta}",
+            'ttl': self.peer.ttl_padrao,
+            'seq_no': 1,
+            'metodo': 'FL',
+            'visitados': set(),
+            'hop' : 1
+        }
+        resultado,total_hop = self.buscas.busca_em_profundidade(mensagem)
+        print(f"saltos ate encontrar destino por flooding: {total_hop}")
+        mensagem = {
+            'chave': chave,
+            'origem': f"{self.peer.endereco}:{self.peer.porta}",
+            'ttl': self.peer.ttl_padrao,
+            'seq_no': 1,
+            'metodo': 'RW',
+            'ultimo_vizinho': None,
+            'hop' : 1
+        }
+        resultado,total_hop = self.buscas.random_walk(mensagem)        
+        print(f"saltos ate encontrar destino por random walk:{total_hop} ")
+        
+        mensagem = {
+            'chave': chave,
+            'origem': f"{self.peer.endereco}:{self.peer.porta}",
+            'ttl': self.peer.ttl_padrao,
+            'seq_no': 1,
+            'metodo': 'BP',
+            'ultimo_vizinho': None,
+            'hop' : 1
+        }
+        resultado,total_hop = self.buscas.busca_em_profundidade(mensagem)
+        print(f"saltos ate encontrar destino por busca em profundidade: {total_hop}")
 
     def change_ttl(self):
         novo_ttl = int(input("Digite o novo valor de TTL: ").strip())

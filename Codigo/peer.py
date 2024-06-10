@@ -261,10 +261,10 @@ class Peer:
                 'origem': origem,
                 'ttl': ttl,
                 'seq_no': seq_no,
-                'hop': hop + 1,
+                'hop': hop,
                 'visitados': request.get('visitados', [])
             }
-            resultado = buscas.flooding(mensagem)
+            resultado, total_hop = self.buscas.flooding(mensagem)
         elif metodo == 'RW':
             ultimo_vizinho = request.get('ultimo_vizinho')
             mensagem = {
@@ -273,10 +273,11 @@ class Peer:
                 'origem': origem,
                 'ttl': ttl,
                 'seq_no': seq_no,
-                'hop': hop + 1,
+                'hop': hop,
                 'ultimo_vizinho': ultimo_vizinho
             }
-            resultado = buscas.random_walk(mensagem)
+            resultado,total_hop = buscas.random_walk(mensagem)
+            
         elif metodo == 'BP':
             ultimo_vizinho = request.get('ultimo_vizinho')
             mensagem = {
@@ -285,11 +286,11 @@ class Peer:
                 'origem': origem,
                 'ttl': ttl,
                 'seq_no': seq_no,
-                'hop': hop + 1,
+                'hop': hop,
                 'ultimo_vizinho': ultimo_vizinho,
 
             }
-            resultado = buscas.busca_em_profundidade(mensagem)
+            resultado,total_hop = buscas.busca_em_profundidade(mensagem)
         else:
             resultado = "Método de busca desconhecido"
 
