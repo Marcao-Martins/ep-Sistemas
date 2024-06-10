@@ -163,7 +163,7 @@ class Buscas:
         # Condição de Parada 3: Se vizinhos candidatos está vazio
         elif not self.peer.vizinhos_candidatos[mensagem_id]:
             print("BP: nenhum vizinho encontrou a chave, retrocedendo...")
-            proximo = self.peer.noh_mae[mensagem_id]
+            proximo = ultimo_vizinho
 
         # Continuar busca
         else:

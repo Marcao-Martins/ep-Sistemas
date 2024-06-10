@@ -5,11 +5,11 @@ import os
 def abrir_terminais():
     endereco = "127.0.0.1"
     base_porta = 5000
-    vizinhos = [f"{i}.txt" for i in range(1, 11)]
-    chaves_valores = [f"cv{i}.txt" for i in range(1, 11)]
+    vizinhos = [f"{i}.txt" for i in range(1, 8)]
+    chaves_valores = [f"cv{i}.txt" for i in range(1, 8)]
     diretorio = r"E:\ep-Sistemas\Codigo\Interface"
 
-    for i in range(10):
+    for i in range(8):
         porta = base_porta + i + 1
         vizinho = vizinhos[i]
         chave_valor = chaves_valores[i]
