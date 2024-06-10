@@ -48,7 +48,9 @@ class Buscas:
                         resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
                         vizinho_socket.close()
                         if resposta and "VAL" in resposta:
-                            return resposta, hop
+                            partes_resposta = resposta.split('<')
+                            resposta_hop = int(partes_resposta[-1].strip('<>'))
+                            return resposta, resposta_hop
 
         print("Flooding: Chave não encontrada")
         print(f"Total hop: {hop}")
