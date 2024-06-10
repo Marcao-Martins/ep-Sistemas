@@ -264,7 +264,7 @@ class Peer:
                 'hop': hop,
                 'visitados': request.get('visitados', [])
             }
-            resultado, total_hop = self.buscas.flooding(mensagem)
+            resultado, total_hop = buscas.flooding(mensagem)
         elif metodo == 'RW':
             ultimo_vizinho = request.get('ultimo_vizinho')
             mensagem = {

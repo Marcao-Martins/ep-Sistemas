@@ -10,13 +10,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Agora você pode importar o peer.py
 from peer import Peer
-
 class Buscas:
     def __init__(self, peer):
         self.peer = peer
-        self.total_hop = 1
 
     def flooding(self, mensagem):
+        global total_hop  # Use a variável global total_hop
         chave = mensagem['chave']
         origem = mensagem['origem']
         ttl = mensagem['ttl']
@@ -28,7 +27,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Flooding: Chave encontrada localmente: {resultado}")
-            return f"Chave Encontrada: {resultado}"
+            return f"Chave Encontrada: {resultado}", total_hop
 
         if ttl > 0:
             visitados.add(self.peer.endereco + ':' + str(self.peer.porta))
@@ -46,15 +45,15 @@ class Buscas:
                     # Conecta ao vizinho antes de transmitir a mensagem
                     vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
                     if vizinho_socket:
-                        self.total_hop = self.total_hop + 1
+                        total_hop = total_hop + 1
                         resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
                         vizinho_socket.close()
                         if resposta and resposta.startswith("Chave Encontrada:"):
-                            return resposta, self.total_hop
+                            return resposta, total_hop
 
         print("Flooding: Chave não encontrada")
-        print(f"Total hop: {self.total_hop}")
-        return "Chave não encontrada", self.total_hop
+        print(f"Total hop: {total_hop}")
+        return "Chave não encontrada", total_hop
 
             
     def random_walk(self, mensagem):
@@ -68,11 +67,11 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Random Walk: Chave encontrada localmente: {resultado}")
-            return f"Chave encontrada: {resultado}"
+            return f"Chave encontrada: {resultado}",hop
 
         if ttl <= 0 or not self.peer.vizinhos:
             print("Random Walk: Chave não encontrada ou TTL esgotado")
-            return "Chave não encontrada"
+            return "Chave não encontrada",hop
 
         # Filtra os vizinhos possíveis para não incluir o último vizinho
         vizinhos_possiveis = [v for v in self.peer.vizinhos if v != ultimo_vizinho] if ultimo_vizinho else self.peer.vizinhos
@@ -124,11 +123,11 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"BP: Chave encontrada localmente: {resultado}")
-            return f"Chave Encontrada: {resultado}"
+            return f"Chave Encontrada: {resultado}", self.total_hop
 
         if ttl == 0:
             print("BP: TTL igual a zero, descartando mensagem")
-            return "Chave não encontrada"
+            return "Chave não encontrada", self.total_hop
 
         # Remover último vizinho dos vizinhos candidatos
         if ultimo_vizinho and ultimo_vizinho in self.peer.vizinhos_candidatos[mensagem_id]:
@@ -161,7 +160,7 @@ class Buscas:
 
         if not proximo:
             print("BP: Não foi possível determinar o próximo vizinho, encerrando busca.")
-            return "Chave não encontrada"
+            return "Chave não encontrada",hop
 
         nova_mensagem = mensagem.copy()
         nova_mensagem['origem'] = origem
