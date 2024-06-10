@@ -185,11 +185,6 @@ class Interface:
 
         media_busca_profundidade = statistics.mean(hops_busca_profundidade)
         desvio_busca_profundidade = statistics.stdev(hops_busca_profundidade)
-        
-        print(f'Total de mensagens de flooding vistas no nó origem: {self.peer.contadores_busca['FL']}')
-        print(f'Total de mensagens de random walk vistas no nó origem: {self.peer.contadores_busca['RW']}')
-        print(f'Total de mensagens de busca em profundidade vistas no nó origem: {self.peer.contadores_busca['BP']}')
-        
         # Imprimir os resultados
         print(f"Media de saltos ate encontrar destino por flooding: {media_flooding}")
         print(f"Desvio padrao de saltos ate encontrar destino por flooding: {desvio_flooding}")
