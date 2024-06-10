@@ -15,7 +15,6 @@ class Buscas:
         self.peer = peer
 
     def flooding(self, mensagem):
-        global total_hop  # Use a variável global total_hop
         chave = mensagem['chave']
         origem = mensagem['origem']
         ttl = mensagem['ttl']
@@ -27,7 +26,8 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Flooding: Chave encontrada localmente: {resultado}")
-            return f"Chave Encontrada: {resultado}", total_hop
+            
+            return (f"<{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <FL> <{resultado}> <{hop}>"), hop
 
         if ttl > 0:
             visitados.add(self.peer.endereco + ':' + str(self.peer.porta))
@@ -45,15 +45,14 @@ class Buscas:
                     # Conecta ao vizinho antes de transmitir a mensagem
                     vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
                     if vizinho_socket:
-                        total_hop = total_hop + 1
                         resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
                         vizinho_socket.close()
-                        if resposta and resposta.startswith("Chave Encontrada:"):
-                            return resposta, total_hop
+                        if resposta and "VAL" in resposta:
+                            return resposta, hop
 
         print("Flooding: Chave não encontrada")
-        print(f"Total hop: {total_hop}")
-        return "Chave não encontrada", total_hop
+        print(f"Total hop: {hop}")
+        return "Chave não encontrada", hop
 
             
     def random_walk(self, mensagem):
@@ -123,11 +122,11 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"BP: Chave encontrada localmente: {resultado}")
-            return f"Chave Encontrada: {resultado}", self.total_hop
+            return f"Chave Encontrada: {resultado}", hop
 
         if ttl == 0:
             print("BP: TTL igual a zero, descartando mensagem")
-            return "Chave não encontrada", self.total_hop
+            return "Chave não encontrada", hop
 
         # Remover último vizinho dos vizinhos candidatos
         if ultimo_vizinho and ultimo_vizinho in self.peer.vizinhos_candidatos[mensagem_id]:

@@ -79,8 +79,6 @@ class Interface:
             print("Opção inválida. Tente novamente.")
 
     def search_flooding(self):
-        global total_hop  # Use a variável global total_hop
-        total_hop = 1  # Reinicia o total_hop
         chave = input("Digite a chave a ser buscada: ").strip()
         mensagem = {
             'chave': chave,
@@ -93,7 +91,7 @@ class Interface:
         }
         resultado,total_hop = self.buscas.flooding(mensagem)
         print(resultado)
-        print(f"HOPS totais: {total_hop}")
+        print(f"HOPS totais até a mensagem: {total_hop}")
         return total_hop
 
     def search_random_walk(self):
