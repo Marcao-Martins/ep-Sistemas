@@ -68,7 +68,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Random Walk: Chave encontrada localmente: {resultado}")
-            return f"Chave encontrada: {resultado}",hop
+            return (f"<{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <RW> <{resultado}> <{hop}>"),hop
 
         if ttl <= 0 or not self.peer.vizinhos:
             print("Random Walk: Chave não encontrada ou TTL esgotado")
@@ -95,8 +95,10 @@ class Buscas:
         if vizinho_socket:
             resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
             vizinho_socket.close()
-            if resposta:
-                return resposta,hop
+            if resposta and "VAL" in resposta:
+                partes_resposta = resposta.split('<')
+                resposta_hop = int(partes_resposta[-1].strip('<>'))
+                return resposta, resposta_hop
 
         print("Random Walk: Chave não encontrada")
         return "Chave não encontrada",hop
@@ -124,7 +126,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"BP: Chave encontrada localmente: {resultado}")
-            return f"Chave Encontrada: {resultado}", hop
+            return (f"<{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <BP> <{resultado}> <{hop}>"), hop
 
         if ttl == 0:
             print("BP: TTL igual a zero, descartando mensagem")
@@ -176,8 +178,10 @@ class Buscas:
         if vizinho_socket:
             resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
             vizinho_socket.close()
-            if resposta and resposta.startswith("Chave Encontrada:"):
-                return resposta,hop
+            if resposta and "VAL" in resposta:
+                partes_resposta = resposta.split('<')
+                resposta_hop = int(partes_resposta[-1].strip('<>'))
+                return resposta, resposta_hop
 
         print("BP: Chave não encontrada")
         return "Chave não encontrada",hop

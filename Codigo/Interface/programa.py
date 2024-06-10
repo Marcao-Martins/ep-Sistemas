@@ -104,8 +104,6 @@ class Interface:
             'metodo': 'RW',
             'ultimo_vizinho': None,
             'hop' : 1
-
-
         }
         resultado,total_hop = self.buscas.random_walk(mensagem)
         print(resultado)

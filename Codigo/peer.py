@@ -231,7 +231,6 @@ class Peer:
             return None
 
         
-    
 
     def handle_search(self, request, peer_socket):
         from Grafo.buscas import Buscas
