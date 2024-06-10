@@ -128,10 +128,6 @@ class Interface:
     def show_statistics(self):
         chave = input("Digite a chave a ser buscada: ").strip()
 
-        
-        print(f'Total de mensagens de flooding vistas: {self.peer.contadores_busca['FL']}')
-        print(f'Total de mensagens de random walk vistas: {self.peer.contadores_busca['RW']}')
-        print(f'Total de mensagens de busca em profundidade vistas: {self.peer.contadores_busca['BP']}')
         # Listas para armazenar o número de saltos para cada método de busca
         hops_flooding = []
         hops_random_walk = []
@@ -177,6 +173,8 @@ class Interface:
             }
             resultado, total_hop = self.buscas.busca_em_profundidade(mensagem)
             hops_busca_profundidade.append(total_hop)
+            
+            
 
         # Calcular média e desvio padrão
         media_flooding = statistics.mean(hops_flooding)
@@ -187,7 +185,11 @@ class Interface:
 
         media_busca_profundidade = statistics.mean(hops_busca_profundidade)
         desvio_busca_profundidade = statistics.stdev(hops_busca_profundidade)
-
+        
+        print(f'Total de mensagens de flooding vistas no nó origem: {self.peer.contadores_busca['FL']}')
+        print(f'Total de mensagens de random walk vistas no nó origem: {self.peer.contadores_busca['RW']}')
+        print(f'Total de mensagens de busca em profundidade vistas no nó origem: {self.peer.contadores_busca['BP']}')
+        
         # Imprimir os resultados
         print(f"Media de saltos ate encontrar destino por flooding: {media_flooding}")
         print(f"Desvio padrao de saltos ate encontrar destino por flooding: {desvio_flooding}")
