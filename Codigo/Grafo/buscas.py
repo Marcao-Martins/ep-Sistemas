@@ -135,10 +135,12 @@ class Buscas:
         if resultado:
             print(f"BP: Chave encontrada localmente: {resultado}")
             print(f"BP: Encaminhando Mensagem <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <BP> <{resultado}> <{hop}> para {origem}")
+            self.limpa_busca_em_profundidade(mensagem_id)
             return (f"Chave Encontrada: <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <BP> <{resultado}> <{hop}>"), hop
 
         if ttl == 0:
             print("BP: TTL igual a zero, descartando mensagem")
+            self.limpa_busca_em_profundidade(mensagem_id)
             return "Chave não encontrada", hop
 
         # Remover último vizinho dos vizinhos candidatos
@@ -150,7 +152,8 @@ class Buscas:
                 self.peer.vizinho_ativo[mensagem_id] == ultimo_vizinho and \
                 not self.peer.vizinhos_candidatos[mensagem_id]:
             print(f"BP: Nao foi possivel localizar a chave {chave}")
-            return "Chave não encontrada"
+            self.limpa_busca_em_profundidade(mensagem_id)
+            return "Chave não encontrada", hop
 
         # Condição de Parada 2: Se vizinho ativo está definido e não é último vizinho
         if self.peer.vizinho_ativo[mensagem_id] and self.peer.vizinho_ativo[mensagem_id] != ultimo_vizinho:
@@ -170,7 +173,9 @@ class Buscas:
 
         if not proximo:
             print("BP: Não foi possível determinar o próximo vizinho, encerrando busca.")
-            return "Chave não encontrada",hop
+            self.limpa_busca_em_profundidade(mensagem_id)
+            return "Chave não encontrada", hop
+
         ttl = ttl -1
         seq_no = seq_no + 1
         hop = hop + 1
@@ -190,10 +195,21 @@ class Buscas:
             if resposta and "VAL" in resposta:
                 partes_resposta = resposta.split('<')
                 resposta_hop = int(partes_resposta[-1].strip('<>'))
+                self.limpa_busca_em_profundidade(mensagem_id)
                 return resposta, resposta_hop
 
         print("BP: Chave não encontrada")
-        return "Chave não encontrada",hop
+        self.limpa_busca_em_profundidade(mensagem_id)
+        return "Chave não encontrada", hop
+    
+        
+    def limpa_busca_em_profundidade(self, mensagem_id):
+        if mensagem_id in self.peer.noh_mae:
+            del self.peer.noh_mae[mensagem_id]
+        if mensagem_id in self.peer.vizinho_ativo:
+            del self.peer.vizinho_ativo[mensagem_id]
+        if mensagem_id in self.peer.vizinhos_candidatos:
+            del self.peer.vizinhos_candidatos[mensagem_id]
 
 
     def inicia_servidor(self):

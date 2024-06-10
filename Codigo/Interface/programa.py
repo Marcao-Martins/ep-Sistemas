@@ -1,5 +1,6 @@
 import sys
 import os
+import statistics
 import time
 import threading
 
@@ -131,40 +132,69 @@ class Interface:
         print(f'Total de mensagens de flooding vistas: {self.peer.contadores_busca['FL']}')
         print(f'Total de mensagens de random walk vistas: {self.peer.contadores_busca['RW']}')
         print(f'Total de mensagens de busca em profundidade vistas: {self.peer.contadores_busca['BP']}')
-        mensagem = {
-            'chave': chave,
-            'origem': f"{self.peer.endereco}:{self.peer.porta}",
-            'ttl': self.peer.ttl_padrao,
-            'seq_no': 1,
-            'metodo': 'FL',
-            'visitados': set(),
-            'hop' : 1
-        }
-        resultado,total_hop = self.buscas.busca_em_profundidade(mensagem)
-        print(f"saltos ate encontrar destino por flooding: {total_hop}")
-        mensagem = {
-            'chave': chave,
-            'origem': f"{self.peer.endereco}:{self.peer.porta}",
-            'ttl': self.peer.ttl_padrao,
-            'seq_no': 1,
-            'metodo': 'RW',
-            'ultimo_vizinho': None,
-            'hop' : 1
-        }
-        resultado,total_hop = self.buscas.random_walk(mensagem)        
-        print(f"saltos ate encontrar destino por random walk:{total_hop} ")
-        
-        mensagem = {
-            'chave': chave,
-            'origem': f"{self.peer.endereco}:{self.peer.porta}",
-            'ttl': self.peer.ttl_padrao,
-            'seq_no': 1,
-            'metodo': 'BP',
-            'ultimo_vizinho': None,
-            'hop' : 1
-        }
-        resultado,total_hop = self.buscas.busca_em_profundidade(mensagem)
-        print(f"saltos ate encontrar destino por busca em profundidade: {total_hop}")
+        # Listas para armazenar o número de saltos para cada método de busca
+        hops_flooding = []
+        hops_random_walk = []
+        hops_busca_profundidade = []
+
+        # Executar cada método de busca 5 vezes
+        for _ in range(5):
+            # Flooding
+            mensagem = {
+                'chave': chave,
+                'origem': f"{self.peer.endereco}:{self.peer.porta}",
+                'ttl': self.peer.ttl_padrao,
+                'seq_no': 1,
+                'metodo': 'FL',
+                'visitados': set(),
+                'hop' : 1
+            }
+            resultado, total_hop = self.buscas.flooding(mensagem)
+            hops_flooding.append(total_hop)
+
+            # Random Walk
+            mensagem = {
+                'chave': chave,
+                'origem': f"{self.peer.endereco}:{self.peer.porta}",
+                'ttl': self.peer.ttl_padrao,
+                'seq_no': 1,
+                'metodo': 'RW',
+                'ultimo_vizinho': None,
+                'hop' : 1
+            }
+            resultado, total_hop = self.buscas.random_walk(mensagem)
+            hops_random_walk.append(total_hop)
+            
+            # Busca em Profundidade
+            mensagem = {
+                'chave': chave,
+                'origem': f"{self.peer.endereco}:{self.peer.porta}",
+                'ttl': self.peer.ttl_padrao,
+                'seq_no': 1,
+                'metodo': 'BP',
+                'ultimo_vizinho': None,
+                'hop' : 1
+            }
+            resultado, total_hop = self.buscas.busca_em_profundidade(mensagem)
+            hops_busca_profundidade.append(total_hop)
+
+        # Calcular média e desvio padrão
+        media_flooding = statistics.mean(hops_flooding)
+        desvio_flooding = statistics.stdev(hops_flooding)
+
+        media_random_walk = statistics.mean(hops_random_walk)
+        desvio_random_walk = statistics.stdev(hops_random_walk)
+
+        media_busca_profundidade = statistics.mean(hops_busca_profundidade)
+        desvio_busca_profundidade = statistics.stdev(hops_busca_profundidade)
+
+        # Imprimir os resultados
+        print(f"Media de saltos ate encontrar destino por flooding: {media_flooding}")
+        print(f"Desvio padrao de saltos ate encontrar destino por flooding: {desvio_flooding}")
+        print(f"Media de saltos ate encontrar destino por random walk: {media_random_walk}")
+        print(f"Desvio padrao de saltos ate encontrar destino por random walk: {desvio_random_walk}")
+        print(f"Media de saltos ate encontrar destino por busca em profundidade: {media_busca_profundidade}")
+        print(f"Desvio padrao de saltos ate encontrar destino por busca em profundidade: {desvio_busca_profundidade}")
 
     def change_ttl(self):
         novo_ttl = int(input("Digite o novo valor de TTL: ").strip())
