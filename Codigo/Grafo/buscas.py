@@ -25,7 +25,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Flooding: Chave encontrada localmente: {resultado}")
-            
+            print(f"Flooding: Encaminhando Mensagem <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <FL> <{resultado}> <{hop}> para {origem}")
             return (f"Chave Encontrada: <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <FL> <{resultado}> <{hop}>"), hop
 
         if ttl > 0:
@@ -73,6 +73,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Random Walk: Chave encontrada localmente: {resultado}")
+            print(f"Random Walk: Encaminhando Mensagem <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <RW> <{resultado}> <{hop}> para {origem}")
             return (f"Chave Encontrada: <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <RW> <{resultado}> <{hop}>"),hop
 
         if ttl <= 0 or not self.peer.vizinhos:
@@ -133,6 +134,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"BP: Chave encontrada localmente: {resultado}")
+            print(f"BP: Encaminhando Mensagem <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <BP> <{resultado}> <{hop}> para {origem}")
             return (f"Chave Encontrada: <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <BP> <{resultado}> <{hop}>"), hop
 
         if ttl == 0:
