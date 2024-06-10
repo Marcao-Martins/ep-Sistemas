@@ -148,8 +148,12 @@ class Peer:
 
     def handle_hello(self, endereco, porta, op):
         if op == 'ADC VIZINHO':
-            print(f'    Adicionando vizinho na tabela de {endereco}:{porta}\n')
-            self.vizinhos.append(f'{endereco}:{porta}')
+            if f'{endereco}:{porta}' in self.vizinhos:
+                print(f'    Vizinho {endereco}:{porta} já está na tabela de vizinhos')
+                return
+            else:
+                print(f'    Adicionando vizinho na tabela de {endereco}:{porta}\n')
+                self.vizinhos.append(f'{endereco}:{porta}')
 
         elif op == 'MENU HELLO': 
             try:
