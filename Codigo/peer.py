@@ -78,7 +78,7 @@ class Peer:
     def handle_peer(self, peer_socket):
         try:
             mensagem = peer_socket.recv(1024).decode()  # Lê a mensagem enviada pelo peer
-            print(f'Mensagem recebida pelo servidor: "{mensagem}"')
+            print(f'Mensagem recebida: "{mensagem}"')
 
             # Verifica se a mensagem é um JSON
             try:
@@ -221,10 +221,8 @@ class Peer:
             resposta = peer_socket.recv(4096).decode()
             if resposta:
                 resposta_dict = json.loads(resposta)
-                print(f'envia_mensagem_busca: Resposta recebida: {resposta_dict}')
                 return resposta_dict
             else:
-                print("envia_mensagem_busca: Resposta vazia recebida")
                 return None
         except Exception as e:
             print(f"Erro ao enviar mensagem de busca: {e}")
@@ -298,10 +296,8 @@ class Peer:
             resultado = "Método de busca desconhecido"
 
         resposta_json = json.dumps(resultado)
-        print(f"handle_search: Enviando resposta: {resposta_json}")
         peer_socket.send(resposta_json.encode())
 
-        print(f"handle_search: Fim da função")
         self.limpa_mensagens_vistas()  # Limpa a lista de mensagens vistas após cada busca
                 
     def envia_mensagem(self, peer_socket, mensagem):
@@ -323,7 +319,6 @@ class Peer:
 
     def limpa_mensagens_vistas(self):
         self.mensagens_vistas.clear()
-        print("Lista de mensagens vistas foi limpa")
 
     def transmite_mensagem(self, mensagem, exclude_socket=None):
         print(f'Transmitindo a mensagem: {mensagem}')

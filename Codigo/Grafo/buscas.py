@@ -22,26 +22,29 @@ class Buscas:
         hop = mensagem['hop']
         visitados = set(mensagem.get('visitados', []))
 
-        print(f"Flooding: Tabela chave-valor local: {self.peer.chave_valor}")
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Flooding: Chave encontrada localmente: {resultado}")
             
-            return (f"<{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <FL> <{resultado}> <{hop}>"), hop
+            return (f"Chave Encontrada: <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <FL> <{resultado}> <{hop}>"), hop
 
         if ttl > 0:
             visitados.add(self.peer.endereco + ':' + str(self.peer.porta))
+            ttl = ttl -1
+            seq_no = seq_no + 1
+            hop = hop + 1
             for vizinho in self.peer.vizinhos:
                 vizinho_endereco, vizinho_porta = vizinho.split(':')
                 vizinho_identificador = f"{vizinho_endereco}:{vizinho_porta}"
                 if vizinho_identificador not in visitados:
-                    print(f"Flooding: Encaminhando mensagem para {vizinho_identificador}")
                     nova_mensagem = mensagem.copy()
                     nova_mensagem['origem'] = origem  # Mantém a origem original
-                    nova_mensagem['ttl'] = ttl - 1
-                    nova_mensagem['seq_no'] = seq_no + 1
-                    nova_mensagem['hop'] = hop + 1
+                    nova_mensagem['ttl'] = ttl
+                    nova_mensagem['seq_no'] = seq_no
+                    nova_mensagem['hop'] = hop
                     nova_mensagem['visitados'] = list(visitados)
+                    print(f"Flooding: Encaminhando Mensagem <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> <FL> <{hop}> para {vizinho_identificador}")
+
                     # Conecta ao vizinho antes de transmitir a mensagem
                     vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
                     if vizinho_socket:
@@ -52,8 +55,10 @@ class Buscas:
                             resposta_hop = int(partes_resposta[-1].strip('<>'))
                             return resposta, resposta_hop
 
-        print("Flooding: Chave não encontrada")
-        print(f"Total hop: {hop}")
+        elif ttl == 0:
+            print(" TTL igual a zero, descartando mensagem")
+
+        print("Chave não encontrada")
         return "Chave não encontrada", hop
 
             
@@ -68,7 +73,7 @@ class Buscas:
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"Random Walk: Chave encontrada localmente: {resultado}")
-            return (f"<{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <RW> <{resultado}> <{hop}>"),hop
+            return (f"Chave Encontrada: <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <RW> <{resultado}> <{hop}>"),hop
 
         if ttl <= 0 or not self.peer.vizinhos:
             print("Random Walk: Chave não encontrada ou TTL esgotado")
@@ -81,13 +86,16 @@ class Buscas:
             vizinhos_possiveis = self.peer.vizinhos
 
         vizinho_escolhido = random.choice(vizinhos_possiveis)
-        print(f"Random Walk: Encaminhando mensagem para {vizinho_escolhido}")
         nova_mensagem = mensagem.copy()
+        ttl = ttl -1
+        seq_no = seq_no + 1
+        hop = hop + 1
         nova_mensagem['origem'] = origem  # Mantém a origem original
-        nova_mensagem['ttl'] = ttl - 1
-        nova_mensagem['seq_no'] = seq_no + 1
-        nova_mensagem['hop'] = hop + 1
+        nova_mensagem['ttl'] = ttl
+        nova_mensagem['seq_no'] = seq_no
+        nova_mensagem['hop'] = hop
         nova_mensagem['ultimo_vizinho'] = self.peer.endereco + ':' + str(self.peer.porta)
+        print(f"Random Walk: Encaminhando mensagem <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> <RW> <{hop}> para {vizinho_escolhido}")
 
         # Conecta ao vizinho antes de transmitir a mensagem
         vizinho_endereco, vizinho_porta = vizinho_escolhido.split(':')
@@ -121,12 +129,11 @@ class Buscas:
             self.peer.noh_mae[mensagem_id] = f"{self.peer.endereco}:{self.peer.porta}"
             self.peer.vizinho_ativo[mensagem_id] = None
             self.peer.vizinhos_candidatos[mensagem_id] = list(self.peer.vizinhos)
-            print(f"BP: Iniciando busca - Nó mãe: {self.peer.noh_mae[mensagem_id]}, Candidatos: {self.peer.vizinhos_candidatos[mensagem_id]}")
 
         resultado = self.peer.chave_valor.get(chave)
         if resultado:
             print(f"BP: Chave encontrada localmente: {resultado}")
-            return (f"<{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <BP> <{resultado}> <{hop}>"), hop
+            return (f"Chave Encontrada: <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> VAL <BP> <{resultado}> <{hop}>"), hop
 
         if ttl == 0:
             print("BP: TTL igual a zero, descartando mensagem")
@@ -135,7 +142,6 @@ class Buscas:
         # Remover último vizinho dos vizinhos candidatos
         if ultimo_vizinho and ultimo_vizinho in self.peer.vizinhos_candidatos[mensagem_id]:
             self.peer.vizinhos_candidatos[mensagem_id].remove(ultimo_vizinho)
-            print(f"BP: Removendo último vizinho {ultimo_vizinho} dos candidatos")
 
         # Condição de Parada 1: Se o nó mãe é o próprio endereço, vizinho ativo é último vizinho e vizinhos candidatos está vazio
         if self.peer.noh_mae[mensagem_id] == f"{self.peer.endereco}:{self.peer.porta}" and \
@@ -159,21 +165,22 @@ class Buscas:
             proximo = random.choice(self.peer.vizinhos_candidatos[mensagem_id])
             self.peer.vizinho_ativo[mensagem_id] = proximo
             self.peer.vizinhos_candidatos[mensagem_id].remove(proximo)
-            print(f"BP: Próximo vizinho escolhido: {proximo}, Candidatos restantes: {self.peer.vizinhos_candidatos[mensagem_id]}")
 
         if not proximo:
             print("BP: Não foi possível determinar o próximo vizinho, encerrando busca.")
             return "Chave não encontrada",hop
-
+        ttl = ttl -1
+        seq_no = seq_no + 1
+        hop = hop + 1
         nova_mensagem = mensagem.copy()
         nova_mensagem['origem'] = origem
-        nova_mensagem['ttl'] = ttl - 1
-        nova_mensagem['seq_no'] = seq_no + 1
-        nova_mensagem['hop'] = hop + 1
+        nova_mensagem['ttl'] = ttl
+        nova_mensagem['seq_no'] = seq_no
+        nova_mensagem['hop'] = hop
         nova_mensagem['ultimo_vizinho'] = f"{self.peer.endereco}:{self.peer.porta}"
 
         vizinho_endereco, vizinho_porta = proximo.split(':')
-        print(f"BP: Enviando mensagem para {vizinho_endereco}:{vizinho_porta}")
+        print(f"BP: Enviando mensagem <{self.peer.endereco + ':' + str(self.peer.porta)}> <{seq_no}> <{ttl}> <BP> <{hop}> para {vizinho_endereco}:{vizinho_porta}")
         vizinho_socket = self.peer.conecta_peer(vizinho_endereco, int(vizinho_porta))
         if vizinho_socket:
             resposta = self.peer.envia_mensagem_busca(vizinho_socket, nova_mensagem)
