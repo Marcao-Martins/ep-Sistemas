@@ -2,7 +2,6 @@ import threading
 import json
 import socket
 import time
-from mensagem import Message
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -43,12 +42,7 @@ class Peer:
             peer_socket, addr = servidor.accept()  # Bloqueia a execução 
             threading.Thread(target=self.handle_peer, args=(peer_socket,)).start()
 
-    def formata_mensagem(self, operacao, *argumentos):
-        mensagem = f'{self.endereco}:{self.porta} {self.seq_no} 1 {operacao}'
-        if argumentos:
-            mensagem += " " + " ".join(map(str, argumentos))
-        return mensagem + "\n"
-
+    # Carrega o arquivo de vizinhos
     def load_neighbors(self, filename):
         with open(filename, 'r') as file:
             for line in file:
@@ -56,16 +50,19 @@ class Peer:
                 print(f'Tentando adicionar vizinho {endereco_vizinho}:{porta_vizinho}')
                 self.adiciona_vizinho(endereco_vizinho, int(porta_vizinho))
 
+    # Carrega o arquivo de chave-valor
     def load_key_value_pairs(self, filename):
         with open(filename, 'r') as file:
             for line in file:
                 chave, valor = line.strip().split(' ')
                 self.armazena_valor(chave, valor)
 
+    # Armazena valor a partir do arquivo de chave-valor
     def armazena_valor(self, chave, valor):
         self.chave_valor[chave] = valor
         print(f'\n Adicionando par ({chave}, {valor}) na tabela local')
 
+    # Usada para extrair informações de mensagens
     def extrai_informacoes_da_mensagem(self, mensagem):
         # No formato "127.0.0.1:5001 1 1 HELLO"
         partes = mensagem.split()
@@ -74,7 +71,7 @@ class Peer:
         operacao = partes[3]
         return end_peer, int(porta_peer), operacao
 
-
+    # Principal função para lidar com as mensagens recebidas de um peer
     def handle_peer(self, peer_socket):
         try:
             mensagem = peer_socket.recv(1024).decode()  # Lê a mensagem enviada pelo peer
@@ -104,6 +101,7 @@ class Peer:
         finally:
             peer_socket.close()
 
+    # Conecta um peer ao outro
     def conecta_peer(self, endereco, porta):
         try:
             peer_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -113,15 +111,8 @@ class Peer:
             print(f'    Erro ao conectar!')
             return None
 
+    # Função para adicionar vizinhos inicialmente, usada depois do carregamento do arquivo txt de vizinhos
     def adiciona_vizinho(self, endereco, porta):
-        """
-            Função com a lógica de adicionar um vizinho a partir do txt dado
-
-            agrs:
-                endereco (string):
-                porta (int):
-
-        """
         if f'{endereco}:{porta}' in self.vizinhos:
             print(f'Vizinho {endereco}:{porta} já está na tabela de vizinhos')
             return
@@ -145,7 +136,7 @@ class Peer:
 
         self.seq_no += 1
 
-
+    # Lida com a operação HELLO, para adicionar vizinho ou enviar HELLO pelo MENU
     def handle_hello(self, endereco, porta, op):
         if op == 'ADC VIZINHO':
             if f'{endereco}:{porta}' in self.vizinhos:
@@ -174,6 +165,7 @@ class Peer:
 
         self.seq_no += 1
 
+    # Função usada na operação BYE para remover vizinhos
     def remove_vizinhos(self):
         mensagem = f'{self.endereco}:{self.porta} {self.seq_no} 1 BYE' # Constrói mensagens que vai enviar para vizinhos
 
@@ -198,21 +190,14 @@ class Peer:
                 if vizinho_socket:
                     vizinho_socket.close()
     
+    # Lida com a operação BYE
     def handle_bye(self, endereco, porta):
         print(f'    Removendo vizinho da tabela {endereco}:{porta}')
         self.vizinhos.remove(f'{endereco}:{porta}')
         
         
+    # Envia as mensagens de busca
     def envia_mensagem_busca(self, peer_socket, mensagem):
-        """
-        Função para enviar mensagens de busca e receber uma resposta
-
-        args:
-            peer_socket: peer que está recebendo a mensagem
-            mensagem (dict): mensagem a ser enviada
-        return:
-            resposta: resposta recebida a partir da função recv
-        """
         try:
             # Converta qualquer set na mensagem para lista
             mensagem['visitados'] = list(mensagem.get('visitados', []))
@@ -228,8 +213,7 @@ class Peer:
             print(f"Erro ao enviar mensagem de busca: {e}")
             return None
 
-        
-
+    # Lida com as mensagens de busca
     def handle_search(self, request, peer_socket):
         from Grafo.buscas import Buscas
         buscas = Buscas(self)
@@ -299,17 +283,9 @@ class Peer:
         peer_socket.send(resposta_json.encode())
 
         self.limpa_mensagens_vistas()  # Limpa a lista de mensagens vistas após cada busca
-                
-    def envia_mensagem(self, peer_socket, mensagem):
-        """
-            Função feita para enviar mensagens e receber uma resposta
 
-            args:
-                peer_socket: peer que está enviando a mensagem
-                mensagem (string): mensagem a ser enviada
-            return:
-                resposta: resposta recebida a partir da função recv
-        """
+    # Envia mensagem de um peer para outro e retorna uma resposta
+    def envia_mensagem(self, peer_socket, mensagem):
         try:
             peer_socket.send(mensagem.encode())
             resposta = peer_socket.recv(4096).decode()
@@ -317,14 +293,6 @@ class Peer:
         except:
             return
 
+    # Limpa as mensagens vistas
     def limpa_mensagens_vistas(self):
         self.mensagens_vistas.clear()
-
-    def transmite_mensagem(self, mensagem, exclude_socket=None):
-        print(f'Transmitindo a mensagem: {mensagem}')
-        for vizinho in self.vizinhos:
-            if vizinho != exclude_socket:
-                try:
-                    self.envia_mensagem(vizinho, mensagem)
-                except Exception as e:
-                    print(f'Erro ao transmitir mensagem para o vizinho {vizinho.getpeername()}: {e}')

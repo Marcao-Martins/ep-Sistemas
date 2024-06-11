@@ -1,11 +1,8 @@
 import sys
 import os
 import statistics
-import time
-import threading
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Grafo.grafo import Grafo  # Ajuste conforme necessário
 from Grafo.buscas import Buscas
 from peer import Peer
 
@@ -174,7 +171,10 @@ class Interface:
             resultado, total_hop = self.buscas.busca_em_profundidade(mensagem)
             hops_busca_profundidade.append(total_hop)
             
-            
+        # Printa o numero de vezes que a mensagem passou pelo nó que chamou o método de busca       
+        print(f'Total de mensagens de flooding vistas: {self.peer.contadores_busca['FL']}')
+        print(f'Total de mensagens de random walk vistas: {self.peer.contadores_busca['RW']}')
+        print(f'Total de mensagens de busca em profundidade vistas: {self.peer.contadores_busca['BP']}')
 
         # Calcular média e desvio padrão
         media_flooding = statistics.mean(hops_flooding)

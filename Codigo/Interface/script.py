@@ -2,6 +2,8 @@ import subprocess
 import time
 import os
 
+# Script montado pela dupla para simplificar testes
+
 def abrir_terminais():
     endereco = "127.0.0.1"
     base_porta = 5000
